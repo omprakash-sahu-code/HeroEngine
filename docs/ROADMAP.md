@@ -5,14 +5,23 @@ This document outlines the multi-phase timeline and milestones for development, 
 ---
 
 ## Phase 1: Core Framework & Sorcerer MVP (Current Phase)
-* **Goal:** Set up base architecture, vision pipeline, rendering engine, and the initial `sorcerer` module.
+* **Goal:** Set up modular bootstrap rendering engine, vision pipeline, decoupled input layer, and initial sorcerer spells.
 * **Milestones:**
-  1. [x] Architectural Specification & Directory Structure definition.
-  2. [ ] OpenCV + ModernGL + GLFW rendering pipeline initialization.
-  3. [ ] Async MediaPipe Hands integration (`src/engine/vision/hands/`).
-  4. [ ] Gesture recognition engine for static poses (e.g. open palm, pinch).
-  5. [ ] Initial shader effects for the Sorcerer Module (Mystic Shield, Mystic Portal).
-  6. [ ] Centralized settings manager (`config/default.yaml`).
+  * **Phase 1.1 — Engine Bootstrap**
+    * [ ] Create GLFW windowing class (`window.py`) and ModernGL context wrappers.
+    * [ ] Create shader compiler, 2D texture, and custom framebuffer wrappers in `src/engine/rendering/`.
+    * [ ] Initialize global configs (`config/default.yaml`) and unified console logging.
+  * **Phase 1.2 — Vision Pipeline**
+    * [ ] Integrate camera frame capturer and asynchronous MediaPipe Hands tracker.
+    * [ ] Build real-time performance logger/overlay (`monitor.py`).
+  * **Phase 1.3 — Input & Gesture Layer**
+    * [ ] Create an `InputManager` translating tracking coordinates into unified `HandState` structures.
+    * [ ] Implement heuristic detection for static gestures (Open Palm, Pinch, Closed Fist) with debounce.
+  * **Phase 1.4 — Sorcerer MVP**
+    * [ ] Standardize the abstract `HeroModule` API.
+    * [ ] Build a lightweight CPU particle system to drive sparks and glow effects.
+    * [ ] Implement sorcerer spell visual effects (Mystic Orb -> Mystic Shield -> Eldritch Whip).
+
 
 ---
 

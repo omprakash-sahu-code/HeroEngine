@@ -11,17 +11,17 @@ HeroEngine divides work into isolated packages to maximize performance, clean in
 graph TD
     A[Webcam Feed / Video File] -->|Raw Frame| B[Vision Pipeline]
     B -->|Normalized Landmarks| C[Engine Core / Module Manager]
-    C -->|Dispatch Coordinates| D[Active Hero Module]
+    C -->|Dispatch to| E[Input Manager / Gesture Recognizer]
+    E -->|Clean InputState/HandState| D[Active Hero Module]
     
     subgraph Engine Core Subsystems
         C
-        E[Gesture Recognizer]
+        E
         F[Global State Manager]
-        C --> E
         C --> F
     end
     
-    D -->|Gesture State & Hand Locations| G[ModernGL Rendering Pipeline]
+    D -->|Render Commands| G[ModernGL Rendering Pipeline]
     G -->|GLFW Window Render| H[Display Output]
     G -->|Optional Plugin| I[OSC / WebSocket Output]
 end
@@ -38,18 +38,18 @@ end
   * `pose/detector.py`: Evaluates and exposes full-body poses.
   * `face/detector.py`: Evaluates facial meshes.
 
-### 2.2 Gesture Recognition (`src/engine/gestures/`)
-* Contains mathematical algorithms (defined in [DESIGN.md](file:///f:/Project/HeroEngine/docs/DESIGN.md)) to parse hand and body landmarks.
-* Translates continuous coordinate data into discrete events (e.g. `GESTURE_PINCH_START`, `GESTURE_PALM_RELEASE`).
+### 2.2 Input & Gesture Layer (`src/engine/gestures/` & `src/engine/core/input_manager.py`)
+* **Input Manager:** Acts as a broker, receiving raw MediaPipe coordinates and packing them into an abstract `InputState` containing `HandState` structures. This decouples core modules from MediaPipe details.
+* **Gesture Recognizer:** Evaluates geometric rules (angles, distances) to identify palm, pinch, and fist states, applying debouncers.
 
 ### 2.3 Rendering Subsystem (`src/engine/rendering/`)
-* **Renderer (`renderer.py`):** Holds the GLFW window handle and manages the ModernGL OpenGL Context.
-* **Effects Controller (`effects/`):** Controls custom shaders, vertex specifications, buffer mappings, and textures.
-* **Particle System (`particles/`):** Manages particle life cycles, physics updates (gravity, noise fields), and instanced drawing logic.
+* **Renderer (`renderer.py`):** Encapsulates the ModernGL context, binding shaders, textures, and targets.
+* **Shaders & Objects:** Separate wrappers (`window.py`, `shader.py`, `texture.py`, `framebuffer.py`) for decoupled OpenGL operations.
+* **Particle System:** Simple CPU particles (`particles.py`) that simulate sparks and glows.
 
 ### 2.4 Module Manager (`src/engine/core/engine.py`)
-* Automatically discovers and instantiates hero plugins located in the `src/modules/` directory.
-* Delegates input events to the currently active module and manages module swapping (e.g., swapping from `SorcererModule` to `IronModule`).
+* Automatically discovers and instantiates modules in `src/modules/`.
+* Dispatches abstract input states to `process_input()`, updates logic via `update()`, and commands rendering via `render()`.
 
 ---
 
@@ -59,6 +59,7 @@ Every hero module must implement the abstract base class `HeroModule` defined in
 ```python
 # Conceptual design of the Module Interface
 from abc import ABC, abstractmethod
+from typing import Any
 
 class HeroModule(ABC):
     @property
@@ -69,17 +70,22 @@ class HeroModule(ABC):
 
     @abstractmethod
     def initialize(self, ctx) -> None:
-        """Called once when the module is loaded. Sets up GL resources/shaders."""
+        """Called once when the module is loaded. Sets up GL resources/shaders/assets."""
         pass
 
     @abstractmethod
-    def update(self, landmarks, delta_time: float) -> None:
-        """Processes coordinates, calculates active states, and updates internal animation clocks."""
+    def process_input(self, input_state: Any) -> None:
+        """Processes abstract input and gestures (e.g. HandState) and updates internal flags."""
         pass
 
     @abstractmethod
-    def render(self, ctx) -> None:
-        """Renders specific module visual effects to the current framebuffer."""
+    def update(self, dt: float) -> None:
+        """Advances internal logic, particle simulations, and animation timelines."""
+        pass
+
+    @abstractmethod
+    def render(self, renderer: Any) -> None:
+        """Directs the renderer to draw specific module visual effects."""
         pass
 
     @abstractmethod
@@ -100,13 +106,13 @@ The primary execution sequence within `src/main.py` runs on a single main thread
 ▼
 [Frame Loop]:
   1. Capture webcam frame.
-  2. Process frame with MediaPipe (async) to update landmarks.
-  3. Run Gesture Recognition on new landmarks.
-  4. Update Active Hero Module state (particles, trigger clocks).
-  5. Clear screen buffer.
-  6. Render camera background pass.
-  7. Render Active Module visual effects overlay (ModernGL draw calls).
-  8. Apply Post-processing pass (Bloom / Blur).
+  2. Process frame with MediaPipe (async) to update raw landmarks.
+  3. Input Manager maps raw landmarks to abstract HandState / InputState.
+  4. Active Hero Module processes inputs via process_input().
+  5. Active Hero Module updates physics and animations via update().
+  6. Clear screen buffer.
+  7. Render camera background pass.
+  8. Active Hero Module draws VFX overlays via render().
   9. Poll GLFW events & swap buffers.
   10. Loop back if window remains open.
 ```
