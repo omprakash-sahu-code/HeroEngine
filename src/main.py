@@ -12,6 +12,9 @@ from src.engine.rendering.texture import Texture2D
 from src.engine.vision.camera import CameraCapture
 from src.engine.vision.hands.detector import HandDetector
 from src.engine.core.monitor import PerformanceMonitor
+from src.engine.core.input_manager import InputManager
+from src.engine.core.engine import ModuleManager
+import time
 
 logger = setup_logger("Main")
 
@@ -64,6 +67,19 @@ def main():
 
     # 6. Initialize Performance Monitor
     monitor = PerformanceMonitor()
+    
+    # Initialize Input Manager
+    input_manager = InputManager(config)
+
+    # Initialize Active Hero Module Discovery & Loading
+    modules_dir = os.path.join(os.path.dirname(__file__), "modules")
+    module_manager = ModuleManager(modules_dir)
+    module_manager.discover_modules()
+    
+    active_module_name = config.get("module", {}).get("active", "sorcerer")
+    active_module = module_manager.load_module(active_module_name, config)
+    if active_module:
+        active_module.initialize()
 
     # 7. Bind resize callback
     window.register_resize_callback(lambda w, h: renderer.set_viewport(0, 0, w, h))
@@ -115,6 +131,10 @@ def main():
         # A. Track tick duration
         dt = monitor.tick()
         
+        # B. Run active module simulation updates (sparks decay, timers)
+        if active_module:
+            active_module.update(dt)
+        
         # B. Read Camera Frame
         monitor.start_timer("webcam_read")
         frame = camera.read_frame()
@@ -127,10 +147,26 @@ def main():
             hands_data = detector.process_frame(frame)
             monitor.stop_timer("hands_tracking")
             
-            # Print hand details periodically to verify tracking is active
-            if hands_data and frame_count % 90 == 0:
-                for idx, hand in enumerate(hands_data):
-                    logger.info(f"Hand {idx}: {hand['label']} (Confidence: {hand['score']:.2f})")
+            # Feed raw tracking results into InputManager
+            input_manager.update(hands_data)
+            
+            # Feed tracking states to active module
+            if active_module:
+                active_module.process_input(input_manager.get_hands())
+            
+            # Print hand details periodically to verify tracking and gesture state
+            active_hands = input_manager.get_hands()
+            if active_hands and frame_count % 90 == 0:
+                for label, hand in active_hands.items():
+                    # Check for circular patterns too
+                    is_circular, rad, coverage = input_manager.check_circular_motion(label)
+                    circ_str = f" | Circle: True (R:{rad:.2f}, Cov:{coverage:.1f})" if is_circular else ""
+                    logger.info(
+                        f"Hand: {label} | Gesture: {hand.gesture}{circ_str} | "
+                        f"Centroid: ({hand.centroid[0]:.2f}, {hand.centroid[1]:.2f}) | "
+                        f"Pinch Dist: {hand.pinch_distance:.2f} | "
+                        f"Vel: ({hand.velocity[0]:.2f}, {hand.velocity[1]:.2f})"
+                    )
 
             # D. Upload Frame to GPU Texture
             monitor.start_timer("texture_upload")
@@ -148,6 +184,15 @@ def main():
             bg_shader.set_uniform("u_texture", 0)
             vao.render(moderngl.TRIANGLES)
             monitor.stop_timer("render_background")
+            
+            # G. Draw Hero Module spell effect requests
+            if active_module:
+                monitor.start_timer("render_effects")
+                effect_requests = active_module.get_render_requests()
+                aspect = window.width / window.height if window.height > 0 else 1.777
+                current_time = time.perf_counter()
+                renderer.draw_effects(effect_requests, aspect, current_time)
+                monitor.stop_timer("render_effects")
 
         # G. Display Performance Metrics periodically
         frame_count += 1
@@ -160,6 +205,12 @@ def main():
 
     # 12. Shutdown and cleanup
     logger.info("Cleaning up resources...")
+    if active_module:
+        active_module.release()
+        
+    # Release renderer GPU resources
+    renderer.release()
+    
     vao.release()
     vbo.release()
     bg_shader.release()

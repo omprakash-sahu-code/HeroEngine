@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
+from src.engine.core.input_manager import HandState
+from src.engine.rendering.request import EffectRequest
 
 class HeroModule(ABC):
     """Abstract Base Class defining the life-cycle and integration API
@@ -27,41 +29,42 @@ class HeroModule(ABC):
         pass
 
     @abstractmethod
-    def initialize(self, ctx) -> None:
+    def initialize(self) -> None:
         """Called once when the engine activates this module.
 
-        Initializes GPU resources, compiles shaders, and loads textures.
-
-        Args:
-            ctx: The ModernGL context instance.
+        Set up initial state parameters and CPU components.
         """
         pass
 
     @abstractmethod
-    def update(self, landmarks: Dict[str, Any], delta_time: float) -> None:
-        """Processes raw coordinates and gesture outputs.
-
-        Updates internal state, animations, physics, and particle controllers.
+    def process_input(self, active_hands: Dict[str, HandState]) -> None:
+        """Processes debounced hand states and coordinate tracking parameters.
 
         Args:
-            landmarks: A dictionary containing hand, pose, and face landmark groups.
-            delta_time: Time elapsed since the last frame in seconds.
+            active_hands: A dictionary mapping hand label ('Left'/'Right') to HandState instances.
         """
         pass
 
     @abstractmethod
-    def render(self, ctx) -> None:
-        """Performs specific ModernGL draw calls to render the module's VFX.
+    def update(self, dt: float) -> None:
+        """Advances internal logic, particle systems, and animation timers.
 
         Args:
-            ctx: The ModernGL context instance.
+            dt: Time elapsed since the last frame in seconds.
+        """
+        pass
+
+    @abstractmethod
+    def get_render_requests(self) -> List[EffectRequest]:
+        """Returns a list of high-level rendering requests representing active spell effects.
+
+        Returns:
+            List[EffectRequest]: Emitter commands processed by the core renderer.
         """
         pass
 
     @abstractmethod
     def release(self) -> None:
-        """Releases and cleans up all allocated OpenGL textures, buffers,
-
-        and programs to avoid resource leaks when the module is swapped or closed.
-        """
+        """Releases and cleans up allocated module CPU resources."""
         pass
+

@@ -12,15 +12,15 @@ This document outlines the multi-phase timeline and milestones for development, 
     * [x] Create shader compiler, 2D texture, and custom framebuffer wrappers in `src/engine/rendering/`.
     * [x] Initialize global configs (`config/default.yaml`) and unified console logging.
   * **Phase 1.2 — Vision Pipeline**
-    * [ ] Integrate camera frame capturer and asynchronous MediaPipe Hands tracker.
-    * [ ] Build real-time performance logger/overlay (`monitor.py`).
+    * [x] Integrate camera frame capturer and asynchronous MediaPipe Hands tracker.
+    * [x] Build real-time performance logger/overlay (`monitor.py`).
   * **Phase 1.3 — Input & Gesture Layer**
-    * [ ] Create an `InputManager` translating tracking coordinates into unified `HandState` structures.
-    * [ ] Implement heuristic detection for static gestures (Open Palm, Pinch, Closed Fist) with debounce.
-  * **Phase 1.4 — Sorcerer MVP**
-    * [ ] Standardize the abstract `HeroModule` API.
-    * [ ] Build a lightweight CPU particle system to drive sparks and glow effects.
-    * [ ] Implement sorcerer spell visual effects (Mystic Orb -> Mystic Shield -> Eldritch Whip).
+    * [x] Create an `InputManager` translating tracking coordinates into unified `HandState` structures.
+    * [x] Implement heuristic detection for static gestures (Open Palm, Pinch, Closed Fist) with debounce.
+  * **Phase 1.4 — Doctor Strange MVP**
+    * [x] Standardize the abstract `HeroModule` API.
+    * [x] Build a lightweight CPU particle system to drive sparks and glow effects.
+    * [x] Implement Doctor Strange spell visual effects (Mystic Orb -> Mystic Shield -> Eldritch Whip).
 
 
 ---
