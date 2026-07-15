@@ -8,9 +8,9 @@ This document outlines the multi-phase timeline and milestones for development, 
 * **Goal:** Set up modular bootstrap rendering engine, vision pipeline, decoupled input layer, and initial sorcerer spells.
 * **Milestones:**
   * **Phase 1.1 — Engine Bootstrap**
-    * [ ] Create GLFW windowing class (`window.py`) and ModernGL context wrappers.
-    * [ ] Create shader compiler, 2D texture, and custom framebuffer wrappers in `src/engine/rendering/`.
-    * [ ] Initialize global configs (`config/default.yaml`) and unified console logging.
+    * [x] Create GLFW windowing class (`window.py`) and ModernGL context wrappers.
+    * [x] Create shader compiler, 2D texture, and custom framebuffer wrappers in `src/engine/rendering/`.
+    * [x] Initialize global configs (`config/default.yaml`) and unified console logging.
   * **Phase 1.2 — Vision Pipeline**
     * [ ] Integrate camera frame capturer and asynchronous MediaPipe Hands tracker.
     * [ ] Build real-time performance logger/overlay (`monitor.py`).

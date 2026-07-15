@@ -1,6 +1,6 @@
 numpy>=1.22.0
 opencv-python>=4.5.5
-mediapipe>=0.9.0
+mediapipe==0.10.13
 moderngl>=5.6.4
 glfw>=2.5.0
 python-osc>=1.8.0
