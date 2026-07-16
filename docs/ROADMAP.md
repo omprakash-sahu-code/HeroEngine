@@ -28,7 +28,7 @@ This document outlines the multi-phase timeline and milestones for development, 
 ## Phase 2: Engine Consolidation & Post-Processing
 * **Goal:** Polish rendering capabilities, add physics-based particle systems, and introduce advanced shaders.
 * **Milestones:**
-  1. [ ] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
+  1. [x] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
   2. [ ] Build GPU-based particle emitter engine supporting instanced rendering.
   3. [ ] Complete Sorcerer Module effects:
       * Eldritch Whips (dynamic physics trails).

@@ -17,9 +17,16 @@ display:
 
 # Rendering quality
 rendering:
-  bloom_enabled: true
-  bloom_strength: 0.5
   particle_limit: 10000
+
+# Post-processing quality and bloom controls
+post_processing:
+  enabled: true
+  threshold: 0.6          # Brightness threshold to start blooming
+  bloom_intensity: 1.2    # Intensity scale of the blur overlay
+  exposure: 1.0           # Exposure factor for HDR mapping
+  gamma: 2.2              # Display gamma correction
+  downsample_factor: 2    # Speed up blurring by downsampling buffer size
 
 # Core tracking options
 tracking:
