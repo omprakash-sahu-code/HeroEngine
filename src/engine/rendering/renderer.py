@@ -159,9 +159,10 @@ class Renderer:
                 count = req.data.get("count", 0)
                 color = req.data.get("color", (1.0, 0.5, 0.1))
                 speed = req.data.get("speed", 0.6)
+                mode = req.data.get("mode", 0.0) # Default to 0.0 (BALLISTIC)
                 
                 if count > 0:
-                    self.gpu_particles.emit(center, count, color, speed, time_elapsed)
+                    self.gpu_particles.emit(center, count, color, speed, time_elapsed, mode)
 
         # 2. Automatically render active GPU particles every frame
         if self.gpu_particles:

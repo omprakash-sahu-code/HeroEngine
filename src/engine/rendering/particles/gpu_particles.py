@@ -8,6 +8,12 @@ from src.engine.utils.logger import setup_logger
 
 logger = setup_logger("GPUParticleSystem")
 
+class ParticleSimulationMode:
+    """Predefined simulation behaviors for the GPU particle kinematic engine."""
+    BALLISTIC = 0.0  # Default: outward velocities, gravity, and drag
+    SPIRAL = 1.0     # Inward spiral vortex towards the birth centroid
+
+
 class GPUParticleSystem:
     """High-performance GPU instanced particle system.
 
@@ -53,7 +59,7 @@ class GPUParticleSystem:
 
         # 3. Particle instance VBO (pre-allocate GPU ring buffer)
         # Format per instance:
-        # spawn_pos (2f), spawn_vel (2f), birth_time (1f), lifetime (1f), color (3f) -> 10 floats = 40 bytes per particle
+        # spawn_pos (2f), spawn_vel (2f), birth_time (1f), lifetime (1f), color (3f), simulation_mode (1f) -> 10 floats = 40 bytes per particle
         self.struct_size = 40
         self.particle_vbo = self.ctx.buffer(reserve=self.limit * self.struct_size)
 
@@ -67,20 +73,29 @@ class GPUParticleSystem:
             self.shader.program,
             [
                 (self.quad_vbo, '2f', 'in_quad_pos'),
-                (self.particle_vbo, '2f 2f 1f 1f 3f /i', 'in_birth_pos', 'in_birth_vel', 'in_birth_time', 'in_lifetime', 'in_color')
+                (self.particle_vbo, '2f 2f 1f 1f 3f 1f /i', 'in_birth_pos', 'in_birth_vel', 'in_birth_time', 'in_lifetime', 'in_color', 'in_simulation_mode')
             ]
         )
         logger.info(f"Initialized GPUParticleSystem with limit: {self.limit}")
 
-    def emit(self, center: Tuple[float, float], count: int, color: Tuple[float, float, float], speed: float, current_time: float) -> None:
+    def emit(
+        self,
+        center: Tuple[float, float],
+        count: int,
+        color: Tuple[float, float, float],
+        speed: float,
+        current_time: float,
+        mode: float = ParticleSimulationMode.BALLISTIC
+    ) -> None:
         """Spawn new particles inside the GPU ring-buffer by writing spawn specs.
 
         Args:
             center: NDC coordinate (x, y).
             count: Number of particles to spawn.
             color: Tuple RGB color.
-            speed: Velocity coefficient.
+            speed: Velocity coefficient or angle.
             current_time: Current simulation elapsed time in seconds.
+            mode: Motion trajectory simulation mode constant from ParticleSimulationMode.
         """
         if count <= 0:
             return
@@ -89,16 +104,21 @@ class GPUParticleSystem:
         count = min(count, self.limit)
 
         # Generate particle instance structures on CPU
-        # Structure layout: [x, y, vx, vy, birth_time, lifetime, r, g, b] (10 floats)
+        # Structure layout: [x, y, vx, vy, birth_time, lifetime, r, g, b, simulation_mode] (10 floats)
         particles_data = np.zeros(count * 10, dtype='f4')
 
         for i in range(count):
-            angle = random.uniform(0, 2 * np.pi)
-            r_speed = random.uniform(0.1, speed)
-            vx = r_speed * np.cos(angle)
-            vy = r_speed * np.sin(angle)
-            
-            lifetime = random.uniform(0.4, 0.9)
+            if mode == ParticleSimulationMode.SPIRAL:
+                # Store the randomized starting angle in the vx field for the shader spiral equation
+                vx = random.uniform(0.0, 2.0 * np.pi)
+                vy = 0.0
+                lifetime = random.uniform(0.7, 1.1)
+            else:
+                angle = random.uniform(0, 2 * np.pi)
+                r_speed = random.uniform(0.1, speed)
+                vx = r_speed * np.cos(angle)
+                vy = r_speed * np.sin(angle)
+                lifetime = random.uniform(0.4, 0.9)
             
             idx = i * 10
             particles_data[idx]     = center[0]
@@ -110,7 +130,7 @@ class GPUParticleSystem:
             particles_data[idx + 6] = color[0]
             particles_data[idx + 7] = color[1]
             particles_data[idx + 8] = color[2]
-            # 10th float reserved/padding if needed
+            particles_data[idx + 9] = mode
 
         raw_bytes = particles_data.tobytes()
 

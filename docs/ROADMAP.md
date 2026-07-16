@@ -30,7 +30,7 @@ This document outlines the multi-phase timeline and milestones for development, 
 * **Milestones:**
   1. [x] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
   2. [x] Build GPU-based particle emitter engine supporting instanced rendering.
-  3. [ ] Complete Sorcerer Module effects:
+  3. [x] Complete Sorcerer Module effects:
       * Eldritch Whips (dynamic physics trails).
       * Cinematic spell-charge effects (sparks pulling into the palms).
   4. [ ] Standardize sound effect playback engine triggered by state changes.

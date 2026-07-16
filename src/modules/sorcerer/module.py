@@ -3,6 +3,8 @@ from typing import Dict, Any, List
 from src.modules.base_module import HeroModule
 from src.engine.core.input_manager import HandState
 from src.engine.rendering.request import EffectRequest
+from src.engine.rendering.particles.gpu_particles import ParticleSimulationMode
+from src.engine.physics.verlet_chain import VerletChain
 from src.engine.utils.logger import setup_logger
 
 logger = setup_logger("SorcererModule")
@@ -10,7 +12,7 @@ logger = setup_logger("SorcererModule")
 class SorcererModule(HeroModule):
     """Doctor Strange spell overlay module.
 
-    Manages state machines, rotation timelines, and CPU particle systems,
+    Manages state machines, rotation timelines, and Verlet constraint physics chains,
     emitting abstract draw requests to the core renderer.
     """
 
@@ -22,6 +24,9 @@ class SorcererModule(HeroModule):
         
         # Continuous rotation values for shields and seals
         self.shield_rotation = 0.0
+        
+        # A dictionary mapping active hand labels to their corresponding VerletChain whips
+        self.whips: Dict[str, VerletChain] = {}
         
         # A queue of particle emission requests to be consumed by the renderer
         self.pending_emissions = []
@@ -43,37 +48,68 @@ class SorcererModule(HeroModule):
         if self.shield_rotation > 2.0 * np.pi:
             self.shield_rotation -= 2.0 * np.pi
 
-        # 2. Process hand states to spawn whip particles
+        # Remove whips for hands that are no longer active/present
+        active_labels = set(self.hands_state.keys())
+        self.whips = {label: whip for label, whip in self.whips.items() if label in active_labels}
+
+        # 2. Process hand states to spawn whip particles and spell-charge effects
         for label, hand in self.hands_state.items():
+            x_ndc, y_ndc, _ = hand.get_centroid_ndc()
+
             if hand.gesture == "Closed Fist":
-                # Spawn whip spark particles at the hand's centroid NDC
-                x_ndc, y_ndc, _ = hand.get_centroid_ndc()
+                # Manage dynamic Verlet chain rope simulation
+                if label not in self.whips:
+                    self.whips[label] = VerletChain(
+                        num_nodes=15,
+                        link_distance=0.045,
+                        gravity=(0.0, -0.45),
+                        damping=0.93,
+                        initial_anchor=(x_ndc, y_ndc)
+                    )
                 
-                # Check magnitude of hand velocity
-                vx, vy, vz = hand.velocity
-                vel_magnitude = np.sqrt(vx**2 + vy**2)
+                whip = self.whips[label]
+                whip.update((x_ndc, y_ndc), dt)
                 
-                # If moving fast, spawn more sparks and spread them along the movement path
-                spawn_count = int(max(4, min(30, vel_magnitude * 15.0)))
+                # Emit sparks all along the simulated nodes of the whip for a fluid trail
+                for node_pos in whip.positions:
+                    if np.random.rand() < 0.7:  # Organic density control
+                        self.pending_emissions.append({
+                            "center": (node_pos[0], node_pos[1]),
+                            "count": 1,
+                            "color": (1.0, 0.42, 0.05), # Burning orange sparks
+                            "speed": 0.22,
+                            "mode": ParticleSimulationMode.BALLISTIC
+                        })
                 
-                # Hot orange-red magic whip sparks
-                color = (1.0, 0.45, 0.08)
-                self.pending_emissions.append({
-                    "center": (x_ndc, y_ndc),
-                    "count": spawn_count,
-                    "color": color,
-                    "speed": 0.8
-                })
+            elif hand.gesture == "Pinch":
+                # Remove active whips if transitioning to pinch
+                if label in self.whips:
+                    del self.whips[label]
+
+                # Spell-Charge Vortex: Emit sparks spiraling inward to the palm
+                # Spawn 3 spiral particles per frame per hand
+                for _ in range(3):
+                    self.pending_emissions.append({
+                        "center": (x_ndc, y_ndc),
+                        "count": 1,
+                        "color": (1.0, 0.65, 0.08),  # Vibrant gold
+                        "speed": 0.0,  # Speed unused in spiral mode
+                        "mode": ParticleSimulationMode.SPIRAL
+                    })
                 
             elif hand.gesture == "Open Palm":
+                # Remove active whips if transitioning to open palm
+                if label in self.whips:
+                    del self.whips[label]
+
                 # Soft ambient sparks floating from the edges of the shield
-                x_ndc, y_ndc, _ = hand.get_centroid_ndc()
-                if np.random.rand() < 0.3: # 30% chance per frame
+                if np.random.rand() < 0.3:
                     self.pending_emissions.append({
                         "center": (x_ndc, y_ndc),
                         "count": 1,
                         "color": (1.0, 0.6, 0.1),
-                        "speed": 0.2
+                        "speed": 0.25,
+                        "mode": ParticleSimulationMode.BALLISTIC
                     })
 
     def get_render_requests(self) -> List[EffectRequest]:
@@ -101,7 +137,6 @@ class SorcererModule(HeroModule):
                 )
             elif hand.gesture == "Pinch":
                 # Summon glowing Mystic Orb
-                # Scale radius slightly depending on pinch distance
                 radius = 0.15 + (hand.pinch_distance * 0.08)
                 requests.append(
                     EffectRequest(
@@ -120,7 +155,8 @@ class SorcererModule(HeroModule):
                     center=emission["center"],
                     count=emission["count"],
                     color=emission["color"],
-                    speed=emission["speed"]
+                    speed=emission["speed"],
+                    mode=emission["mode"]
                 )
             )
         self.pending_emissions.clear()
@@ -130,5 +166,6 @@ class SorcererModule(HeroModule):
     def release(self) -> None:
         logger.info("Releasing Sorcerer Module state...")
         self.pending_emissions.clear()
+        self.whips.clear()
         self.hands_state.clear()
         self.is_active = False
