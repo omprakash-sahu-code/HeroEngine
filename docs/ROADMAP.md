@@ -29,7 +29,7 @@ This document outlines the multi-phase timeline and milestones for development, 
 * **Goal:** Polish rendering capabilities, add physics-based particle systems, and introduce advanced shaders.
 * **Milestones:**
   1. [x] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
-  2. [ ] Build GPU-based particle emitter engine supporting instanced rendering.
+  2. [x] Build GPU-based particle emitter engine supporting instanced rendering.
   3. [ ] Complete Sorcerer Module effects:
       * Eldritch Whips (dynamic physics trails).
       * Cinematic spell-charge effects (sparks pulling into the palms).

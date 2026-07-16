@@ -21,13 +21,10 @@ class Renderer:
         # Shader programs
         self.orb_shader = None
         self.shield_shader = None
-        self.particles_shader = None
-        
         # Vertex arrays
         self.billboard_vao = None
         self.billboard_vbo = None
-        self.particle_vao = None
-        self.particle_vbo = None
+        self.gpu_particles = None
         
         self._initialize_context()
         self._initialize_resources()
@@ -65,13 +62,6 @@ class Renderer:
                 self.ctx, billboard_vert, os.path.join(shader_dir, "shield.frag")
             )
             logger.info("Compiled Shield shaders successfully.")
-            
-            self.particles_shader = ShaderProgram(
-                self.ctx, 
-                os.path.join(shader_dir, "particles.vert"), 
-                os.path.join(shader_dir, "particles.frag")
-            )
-            logger.info("Compiled Particle shaders successfully.")
         except Exception as e:
             logger.critical(f"Failed compiling VFX shaders: {e}")
             raise e
@@ -93,13 +83,9 @@ class Renderer:
             [(self.billboard_vbo, '2f 2f', 'in_position', 'in_texcoord')]
         )
 
-        # 3. Set up dynamic vertex array for Point Particles
-        # Each particle has: position (2f), color/alpha (4f)
-        self.particle_vbo = self.ctx.buffer(reserve=self.particle_limit * 6 * 4) # 6 floats per point
-        self.particle_vao = self.ctx.vertex_array(
-            self.particles_shader.program,
-            [(self.particle_vbo, '2f 4f', 'in_position', 'in_color')]
-        )
+        # 3. Set up GPU-based instanced particle system
+        from src.engine.rendering.particles.gpu_particles import GPUParticleSystem
+        self.gpu_particles = GPUParticleSystem(self.ctx, limit=self.particle_limit)
 
     def clear(self, color: Tuple[float, float, float, float] = (0.1, 0.1, 0.1, 1.0)) -> None:
         """Clear framebuffer target."""
@@ -168,30 +154,26 @@ class Renderer:
                 
                 self.billboard_vao.render(moderngl.TRIANGLES)
                 
-            elif req.effect_type == "particles":
-                points_data = req.data.get("points_data", None)
+            elif req.effect_type == "emit_particles":
+                center = req.data.get("center", (0.0, 0.0))
                 count = req.data.get("count", 0)
-                base_size = req.data.get("base_size", 12.0)
+                color = req.data.get("color", (1.0, 0.5, 0.1))
+                speed = req.data.get("speed", 0.6)
                 
-                if points_data is not None and count > 0:
-                    self.ctx.enable(moderngl.BLEND)
-                    self.set_blend_mode_additive()
-                    
-                    self.particles_shader.use()
-                    self.particles_shader.set_uniform("u_base_size", base_size)
-                    
-                    # Dynamically upload raw floats to the dynamic buffer
-                    self.particle_vbo.write(points_data.tobytes())
-                    
-                    self.particle_vao.render(moderngl.POINTS, vertices=count)
+                if count > 0:
+                    self.gpu_particles.emit(center, count, color, speed, time_elapsed)
+
+        # 2. Automatically render active GPU particles every frame
+        if self.gpu_particles:
+            self.ctx.enable(moderngl.BLEND)
+            self.set_blend_mode_additive()
+            self.gpu_particles.draw(aspect, time_elapsed)
 
     def release(self) -> None:
         """Release GPU buffers and shader links to prevent leaks."""
         if self.billboard_vao: self.billboard_vao.release()
         if self.billboard_vbo: self.billboard_vbo.release()
-        if self.particle_vao: self.particle_vao.release()
-        if self.particle_vbo: self.particle_vbo.release()
+        if self.gpu_particles: self.gpu_particles.release()
         if self.orb_shader: self.orb_shader.release()
         if self.shield_shader: self.shield_shader.release()
-        if self.particles_shader: self.particles_shader.release()
         logger.info("Core Renderer GPU resources released cleanly.")
