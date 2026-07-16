@@ -14,6 +14,7 @@ from src.engine.vision.hands.detector import HandDetector
 from src.engine.core.monitor import PerformanceMonitor
 from src.engine.core.input_manager import InputManager
 from src.engine.core.engine import ModuleManager
+from src.engine.rendering.post_processing.pipeline import PostProcessingPipeline
 import time
 
 logger = setup_logger("Main")
@@ -39,10 +40,19 @@ def main():
 
     # 3. Initialize ModernGL Renderer Context
     try:
-        renderer = Renderer()
+        limit = config.get("rendering", {}).get("particle_limit", 5000)
+        renderer = Renderer(particle_limit=limit, config=config)
         ctx = renderer.ctx
     except Exception as e:
         logger.critical(f"Failed to boot renderer: {e}")
+        window.close()
+        sys.exit(1)
+
+    # Initialize Post-Processing Pipeline
+    try:
+        pipeline = PostProcessingPipeline(ctx, window.width, window.height, config)
+    except Exception as e:
+        logger.critical(f"Failed to initialize post-processing pipeline: {e}")
         window.close()
         sys.exit(1)
 
@@ -82,7 +92,10 @@ def main():
         active_module.initialize()
 
     # 7. Bind resize callback
-    window.register_resize_callback(lambda w, h: renderer.set_viewport(0, 0, w, h))
+    def on_resize(w, h):
+        renderer.set_viewport(0, 0, w, h)
+        pipeline.resize(w, h)
+    window.register_resize_callback(on_resize)
     renderer.set_viewport(0, 0, window.width, window.height)
 
     # 8. Create OpenGL texture target matching webcam resolution
@@ -174,7 +187,10 @@ def main():
             camera_texture.write(frame.tobytes())
             monitor.stop_timer("texture_upload")
 
-        # E. Clear buffer
+        # E. Begin Post-Processing Pass (binds offscreen scene FBO)
+        pipeline.begin()
+
+        # Clear buffer
         renderer.clear()
 
         # F. Draw Full-Screen Camera Background Feed
@@ -194,6 +210,11 @@ def main():
                 renderer.draw_effects(effect_requests, aspect, current_time)
                 monitor.stop_timer("render_effects")
 
+        # H. End Post-Processing Pass (restores screen FBO, runs threshold, blur, bloom blend)
+        monitor.start_timer("post_processing")
+        pipeline.end()
+        monitor.stop_timer("post_processing")
+
         # G. Display Performance Metrics periodically
         frame_count += 1
         if frame_count % 90 == 0:
@@ -207,6 +228,9 @@ def main():
     logger.info("Cleaning up resources...")
     if active_module:
         active_module.release()
+        
+    # Release post-processing resources
+    pipeline.release()
         
     # Release renderer GPU resources
     renderer.release()

@@ -28,12 +28,12 @@ This document outlines the multi-phase timeline and milestones for development, 
 ## Phase 2: Engine Consolidation & Post-Processing
 * **Goal:** Polish rendering capabilities, add physics-based particle systems, and introduce advanced shaders.
 * **Milestones:**
-  1. [ ] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
-  2. [ ] Build GPU-based particle emitter engine supporting instanced rendering.
-  3. [ ] Complete Sorcerer Module effects:
+  1. [x] Implement multi-pass rendering framework inside `rendering/post_processing/` (Bloom, Blur, HDR overlay).
+  2. [x] Build GPU-based particle emitter engine supporting instanced rendering.
+  3. [x] Complete Sorcerer Module effects:
       * Eldritch Whips (dynamic physics trails).
       * Cinematic spell-charge effects (sparks pulling into the palms).
-  4. [ ] Standardize sound effect playback engine triggered by state changes.
+  4. [x] Standardize particle visual properties into a data-driven configuration & preset system.
 
 ---
 
@@ -42,8 +42,9 @@ This document outlines the multi-phase timeline and milestones for development, 
 * **Milestones:**
   1. [ ] Refine the dynamic loader in `src/engine/core/engine.py` to auto-detect modules inside `src/modules/` dynamically.
   2. [ ] Abstract and clean up the `vision/` wrappers to run in independent threads/processes via multiprocessing, preventing UI frame lag.
-  3. [ ] Build a lightweight profiling utility (`src/engine/core/monitor.py`) displaying FPS, tracking latency, GPU compile times, and system load overlays.
-  4. [ ] Write unit tests for math utilities, gesture recognizers, and module loading lifecycle.
+  3. [ ] Standardize sound effect playback engine (using frame-requests & abstract backend).
+  4. [ ] Build a lightweight profiling utility (`src/engine/core/monitor.py`) displaying FPS, tracking latency, GPU compile times, and system load overlays.
+  5. [ ] Write unit tests for math utilities, gesture recognizers, and module loading lifecycle.
 
 ---
 

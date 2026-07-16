@@ -44,6 +44,30 @@ def load_config(config_path: str) -> Dict[str, Any]:
                 # Remove quotes
                 if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
                     parsed_val = val[1:-1]
+                elif val.startswith('[') and val.endswith(']'):
+                    # Parse lists/arrays
+                    raw_elements = [el.strip() for el in val[1:-1].split(',')]
+                    parsed_val = []
+                    for el in raw_elements:
+                        if not el:
+                            continue
+                        # Strip nested quotes
+                        if (el.startswith('"') and el.endswith('"')) or (el.startswith("'") and el.endswith("'")):
+                            parsed_val.append(el[1:-1])
+                        elif el.lower() == 'true':
+                            parsed_val.append(True)
+                        elif el.lower() == 'false':
+                            parsed_val.append(False)
+                        elif el.lower() == 'null' or el == '~':
+                            parsed_val.append(None)
+                        else:
+                            try:
+                                if '.' in el:
+                                    parsed_val.append(float(el))
+                                else:
+                                    parsed_val.append(int(el))
+                            except ValueError:
+                                parsed_val.append(el)
                 elif val.lower() == 'true':
                     parsed_val = True
                 elif val.lower() == 'false':

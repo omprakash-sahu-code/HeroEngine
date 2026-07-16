@@ -7,16 +7,18 @@ logger = setup_logger("Framebuffer")
 class Framebuffer:
     """Manages custom ModernGL Framebuffers for post-processing passes."""
 
-    def __init__(self, ctx: moderngl.Context, width: int, height: int):
+    def __init__(self, ctx: moderngl.Context, width: int, height: int, with_depth: bool = True):
         """Args:
 
             ctx: ModernGL context.
             width: Target width.
             height: Target height.
+            with_depth: True if depth buffer should be allocated.
         """
         self.ctx = ctx
         self.width = width
         self.height = height
+        self.with_depth = with_depth
         
         self.fbo = None
         self.color_texture = None
@@ -33,16 +35,23 @@ class Framebuffer:
             )  # RGBA target
             self.color_texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
             
-            # Depth Attachment
-            self.depth_renderbuffer = self.ctx.depth_renderbuffer(
-                (self.width, self.height)
-            )
+            if self.with_depth:
+                # Depth Attachment
+                self.depth_renderbuffer = self.ctx.depth_renderbuffer(
+                    (self.width, self.height)
+                )
 
-            # Build Framebuffer
-            self.fbo = self.ctx.framebuffer(
-                color_attachments=[self.color_texture],
-                depth_attachment=self.depth_renderbuffer
-            )
+                # Build Framebuffer with Depth
+                self.fbo = self.ctx.framebuffer(
+                    color_attachments=[self.color_texture],
+                    depth_attachment=self.depth_renderbuffer
+                )
+            else:
+                self.depth_renderbuffer = None
+                # Build Framebuffer without Depth
+                self.fbo = self.ctx.framebuffer(
+                    color_attachments=[self.color_texture]
+                )
         except Exception as e:
             logger.error(f"Failed to create Framebuffer Object: {e}")
             raise e
