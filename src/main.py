@@ -40,7 +40,8 @@ def main():
 
     # 3. Initialize ModernGL Renderer Context
     try:
-        renderer = Renderer()
+        limit = config.get("rendering", {}).get("particle_limit", 5000)
+        renderer = Renderer(particle_limit=limit, config=config)
         ctx = renderer.ctx
     except Exception as e:
         logger.critical(f"Failed to boot renderer: {e}")

@@ -14,9 +14,10 @@ class Renderer:
     maintains shape buffers, and draws high-level EffectRequest collections.
     """
 
-    def __init__(self, particle_limit: int = 5000):
+    def __init__(self, particle_limit: int = 5000, config: Dict[str, Any] = None):
         self.ctx = None
         self.particle_limit = particle_limit
+        self.config = config
         
         # Shader programs
         self.orb_shader = None
@@ -85,7 +86,7 @@ class Renderer:
 
         # 3. Set up GPU-based instanced particle system
         from src.engine.rendering.particles.gpu_particles import GPUParticleSystem
-        self.gpu_particles = GPUParticleSystem(self.ctx, limit=self.particle_limit)
+        self.gpu_particles = GPUParticleSystem(self.ctx, limit=self.particle_limit, config=self.config)
 
     def clear(self, color: Tuple[float, float, float, float] = (0.1, 0.1, 0.1, 1.0)) -> None:
         """Clear framebuffer target."""
@@ -160,9 +161,18 @@ class Renderer:
                 color = req.data.get("color", (1.0, 0.5, 0.1))
                 speed = req.data.get("speed", 0.6)
                 mode = req.data.get("mode", 0.0) # Default to 0.0 (BALLISTIC)
+                preset = req.data.get("preset", None)
                 
                 if count > 0:
-                    self.gpu_particles.emit(center, count, color, speed, time_elapsed, mode)
+                    self.gpu_particles.emit(
+                        center=center,
+                        count=count,
+                        color=color,
+                        speed=speed,
+                        current_time=time_elapsed,
+                        mode=mode,
+                        preset=preset
+                    )
 
         # 2. Automatically render active GPU particles every frame
         if self.gpu_particles:

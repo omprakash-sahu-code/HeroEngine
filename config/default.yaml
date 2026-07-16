@@ -48,3 +48,24 @@ module:
   osc_enabled: false
   osc_ip: "127.0.0.1"
   osc_port: 8000
+
+# Preset specifications for GPU instanced particle systems
+particle_presets:
+  whip_trail:
+    color: [1.0, 0.42, 0.05]
+    speed: 0.22
+    mode: "ballistic"
+    lifetime_min: 0.4
+    lifetime_max: 0.9
+  spell_charge:
+    color: [1.0, 0.65, 0.08]
+    speed: 0.0
+    mode: "spiral"
+    lifetime_min: 0.7
+    lifetime_max: 1.1
+  shield_ambient:
+    color: [1.0, 0.6, 0.1]
+    speed: 0.25
+    mode: "ballistic"
+    lifetime_min: 0.4
+    lifetime_max: 0.9

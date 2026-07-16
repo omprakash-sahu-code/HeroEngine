@@ -3,7 +3,6 @@ from typing import Dict, Any, List
 from src.modules.base_module import HeroModule
 from src.engine.core.input_manager import HandState
 from src.engine.rendering.request import EffectRequest
-from src.engine.rendering.particles.gpu_particles import ParticleSimulationMode
 from src.engine.physics.verlet_chain import VerletChain
 from src.engine.utils.logger import setup_logger
 
@@ -76,9 +75,7 @@ class SorcererModule(HeroModule):
                         self.pending_emissions.append({
                             "center": (node_pos[0], node_pos[1]),
                             "count": 1,
-                            "color": (1.0, 0.42, 0.05), # Burning orange sparks
-                            "speed": 0.22,
-                            "mode": ParticleSimulationMode.BALLISTIC
+                            "preset": "whip_trail"
                         })
                 
             elif hand.gesture == "Pinch":
@@ -86,15 +83,13 @@ class SorcererModule(HeroModule):
                 if label in self.whips:
                     del self.whips[label]
 
-                # Spell-Charge Vortex: Emit sparks spiraling inward to the palm
+                # Spell-Charge Vortex: Emit sparks spiraling inward to the palm using spell_charge preset
                 # Spawn 3 spiral particles per frame per hand
                 for _ in range(3):
                     self.pending_emissions.append({
                         "center": (x_ndc, y_ndc),
                         "count": 1,
-                        "color": (1.0, 0.65, 0.08),  # Vibrant gold
-                        "speed": 0.0,  # Speed unused in spiral mode
-                        "mode": ParticleSimulationMode.SPIRAL
+                        "preset": "spell_charge"
                     })
                 
             elif hand.gesture == "Open Palm":
@@ -107,9 +102,7 @@ class SorcererModule(HeroModule):
                     self.pending_emissions.append({
                         "center": (x_ndc, y_ndc),
                         "count": 1,
-                        "color": (1.0, 0.6, 0.1),
-                        "speed": 0.25,
-                        "mode": ParticleSimulationMode.BALLISTIC
+                        "preset": "shield_ambient"
                     })
 
     def get_render_requests(self) -> List[EffectRequest]:
@@ -147,16 +140,14 @@ class SorcererModule(HeroModule):
                     )
                 )
 
-        # 2. Append whip/spark particle emit commands
+        # 2. Append whip/spark particle emit commands using preset keys
         for emission in self.pending_emissions:
             requests.append(
                 EffectRequest(
                     "emit_particles",
                     center=emission["center"],
                     count=emission["count"],
-                    color=emission["color"],
-                    speed=emission["speed"],
-                    mode=emission["mode"]
+                    preset=emission["preset"]
                 )
             )
         self.pending_emissions.clear()
