@@ -2,10 +2,11 @@ import cv2
 import mediapipe as mp
 from typing import Dict, Any, List, Optional
 from src.engine.utils.logger import setup_logger
+from src.engine.vision.types import VisionProcessor
 
 logger = setup_logger("HandDetector")
 
-class HandDetector:
+class HandDetector(VisionProcessor):
     """Wrapper class around MediaPipe Hands solution."""
 
     def __init__(self, config: Dict[str, Any]):

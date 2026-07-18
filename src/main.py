@@ -56,22 +56,16 @@ def main():
         window.close()
         sys.exit(1)
 
-    # 4. Initialize Camera Capture Subsystem
+    # 4. Initialize Asynchronous Vision Pipeline (Camera Source + MediaPipe Detector)
+    from src.engine.vision import CameraCapture, HandDetector, VisionPipeline
     camera_config = config.get("camera", {})
-    camera = CameraCapture(camera_config)
-    if not camera.start():
-        logger.critical("Failed to start camera capture.")
-        window.close()
-        sys.exit(1)
-
-    # 5. Initialize MediaPipe Hand tracking
     tracking_config = config.get("tracking", {}).get("hands", {})
+    
+    camera = CameraCapture(camera_config)
     detector = HandDetector(tracking_config)
-    try:
-        detector.initialize()
-    except Exception as e:
-        logger.critical(f"Failed to initialize hand detector: {e}")
-        camera.stop()
+    vision_pipeline = VisionPipeline(camera, detector)
+    if not vision_pipeline.start():
+        logger.critical("Failed to start asynchronous vision pipeline.")
         window.close()
         sys.exit(1)
 
@@ -128,8 +122,7 @@ def main():
         bg_shader = ShaderProgram(ctx, vert_shader_path, frag_shader_path)
     except Exception as e:
         logger.critical(f"Failed to compile background shaders: {e}")
-        detector.release()
-        camera.stop()
+        vision_pipeline.stop()
         window.close()
         sys.exit(1)
 
@@ -166,18 +159,12 @@ def main():
         if active_module:
             active_module.update(dt)
         
-        # B. Read Camera Frame
-        monitor.start_timer("webcam_read")
-        frame = camera.read_frame()
-        monitor.stop_timer("webcam_read")
+        # C. Read non-blocking VisionResult packet from asynchronous pipeline
+        vision_result = vision_pipeline.get_latest_result()
+        frame = vision_result.frame if vision_result else None
+        hands_data = list(vision_result.hands_data) if vision_result else []
         
-        hands_data = []
         if frame is not None:
-            # C. Run MediaPipe Hands Tracking
-            monitor.start_timer("hands_tracking")
-            hands_data = detector.process_frame(frame)
-            monitor.stop_timer("hands_tracking")
-            
             # Feed raw tracking results into InputManager
             input_manager.update(hands_data)
             
@@ -257,8 +244,7 @@ def main():
     vbo.release()
     bg_shader.release()
     camera_texture.release()
-    detector.release()
-    camera.stop()
+    vision_pipeline.stop()
     window.close()
     logger.info("Shutdown completed successfully.")
 
