@@ -15,8 +15,25 @@ class SorcererModule(HeroModule):
     emitting abstract draw requests to the core renderer.
     """
 
+    @property
     def name(self) -> str:
         return "sorcerer"
+
+    @property
+    def version(self) -> str:
+        return "1.0.0"
+
+    @property
+    def description(self) -> str:
+        return "Doctor Strange mystic spell overlays, shields, and Eldritch whips."
+
+    @property
+    def author(self) -> str:
+        return "HeroEngine Core Team"
+
+    @property
+    def icon(self) -> str:
+        return "assets/icons/icon.png"
 
     def initialize(self) -> None:
         logger.info("Initializing Sorcerer (Doctor Strange) module...")
@@ -32,7 +49,16 @@ class SorcererModule(HeroModule):
         
         # Hand tracking states cached for update loop
         self.hands_state: Dict[str, HandState] = {}
-        self.is_active = True
+
+    def on_activate(self) -> None:
+        super().on_activate()
+        logger.info("Sorcerer module activated!")
+
+    def on_deactivate(self) -> None:
+        super().on_deactivate()
+        logger.info("Sorcerer module deactivated.")
+        self.pending_emissions.clear()
+        self.whips.clear()
 
     def process_input(self, active_hands: Dict[str, HandState]) -> None:
         """Cache the latest parsed and debounced HandStates from the InputManager."""
@@ -159,4 +185,4 @@ class SorcererModule(HeroModule):
         self.pending_emissions.clear()
         self.whips.clear()
         self.hands_state.clear()
-        self.is_active = False
+        super().release()

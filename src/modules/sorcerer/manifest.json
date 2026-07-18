@@ -1,0 +1,10 @@
+{
+  "id": "sorcerer",
+  "name": "Doctor Strange",
+  "version": "1.0.0",
+  "author": "HeroEngine Core Team",
+  "description": "Doctor Strange mystic spell overlays, shields, and Eldritch whips.",
+  "icon": "assets/icons/icon.png",
+  "entry": "module.py",
+  "engine": ">=1.0.0"
+}

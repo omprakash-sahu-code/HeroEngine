@@ -81,15 +81,32 @@ def main():
     # Initialize Input Manager
     input_manager = InputManager(config)
 
-    # Initialize Active Hero Module Discovery & Loading
+    # Initialize Active Hero Module Discovery, Loading, & Lifecycle Management
+    from src.engine.core.module_registry import ModuleRegistry
+    from src.engine.core.module_loader import ModuleLoader
+    from src.engine.core.module_manager import ModuleManager
+
     modules_dir = os.path.join(os.path.dirname(__file__), "modules")
-    module_manager = ModuleManager(modules_dir)
-    module_manager.discover_modules()
+    registry = ModuleRegistry(modules_dir)
+    registry.discover()
+
+    loader = ModuleLoader(registry)
+    module_manager = ModuleManager(registry, loader)
     
     active_module_name = config.get("module", {}).get("active", "sorcerer")
-    active_module = module_manager.load_module(active_module_name, config)
-    if active_module:
-        active_module.initialize()
+    module_manager.switch_module(active_module_name, config)
+
+    # Register hotkey callbacks for dynamic module cycling (TAB / SHIFT+TAB) and code hot-reloading (R)
+    import glfw
+    def on_key(key, scancode, action, mods):
+        if action == glfw.PRESS:
+            if key == glfw.KEY_TAB:
+                forward = not bool(mods & glfw.MOD_SHIFT)
+                module_manager.cycle_module(forward=forward, config=config)
+            elif key == glfw.KEY_R:
+                module_manager.reload_active(config=config)
+
+    window.register_key_callback(on_key)
 
     # 7. Bind resize callback
     def on_resize(w, h):
@@ -143,6 +160,7 @@ def main():
     while not window.should_close():
         # A. Track tick duration
         dt = monitor.tick()
+        active_module = module_manager.active_module
         
         # B. Run active module simulation updates (sparks decay, timers)
         if active_module:
