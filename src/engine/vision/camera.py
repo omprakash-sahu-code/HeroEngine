@@ -5,10 +5,11 @@ import time
 import math
 from typing import Dict, Any, Tuple, Optional
 from src.engine.utils.logger import setup_logger
+from src.engine.vision.types import FrameSource
 
 logger = setup_logger("Camera")
 
-class CameraCapture:
+class CameraCapture(FrameSource):
     """Manages thread-safe asynchronous video capture from webcam or files
 
     without blocking the GUI main thread.

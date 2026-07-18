@@ -15,8 +15,25 @@ class SorcererModule(HeroModule):
     emitting abstract draw requests to the core renderer.
     """
 
+    @property
     def name(self) -> str:
         return "sorcerer"
+
+    @property
+    def version(self) -> str:
+        return "1.0.0"
+
+    @property
+    def description(self) -> str:
+        return "Doctor Strange mystic spell overlays, shields, and Eldritch whips."
+
+    @property
+    def author(self) -> str:
+        return "HeroEngine Core Team"
+
+    @property
+    def icon(self) -> str:
+        return "assets/icons/icon.png"
 
     def initialize(self) -> None:
         logger.info("Initializing Sorcerer (Doctor Strange) module...")
@@ -32,7 +49,16 @@ class SorcererModule(HeroModule):
         
         # Hand tracking states cached for update loop
         self.hands_state: Dict[str, HandState] = {}
-        self.is_active = True
+
+    def on_activate(self) -> None:
+        super().on_activate()
+        logger.info("Sorcerer module activated!")
+
+    def on_deactivate(self) -> None:
+        super().on_deactivate()
+        logger.info("Sorcerer module deactivated.")
+        self.pending_emissions.clear()
+        self.whips.clear()
 
     def process_input(self, active_hands: Dict[str, HandState]) -> None:
         """Cache the latest parsed and debounced HandStates from the InputManager."""
@@ -65,6 +91,8 @@ class SorcererModule(HeroModule):
                         damping=0.93,
                         initial_anchor=(x_ndc, y_ndc)
                     )
+                    # Emit sound when whip is initially created
+                    self.emit_sound("whip_crack", volume=0.8, cooldown_ms=400.0)
                 
                 whip = self.whips[label]
                 whip.update((x_ndc, y_ndc), dt)
@@ -83,8 +111,9 @@ class SorcererModule(HeroModule):
                 if label in self.whips:
                     del self.whips[label]
 
+                self.emit_sound("spell_charge", volume=0.7, cooldown_ms=350.0)
+
                 # Spell-Charge Vortex: Emit sparks spiraling inward to the palm using spell_charge preset
-                # Spawn 3 spiral particles per frame per hand
                 for _ in range(3):
                     self.pending_emissions.append({
                         "center": (x_ndc, y_ndc),
@@ -96,6 +125,8 @@ class SorcererModule(HeroModule):
                 # Remove active whips if transitioning to open palm
                 if label in self.whips:
                     del self.whips[label]
+
+                self.emit_sound("shield_summon", volume=0.9, cooldown_ms=500.0)
 
                 # Soft ambient sparks floating from the edges of the shield
                 if np.random.rand() < 0.3:
@@ -159,4 +190,4 @@ class SorcererModule(HeroModule):
         self.pending_emissions.clear()
         self.whips.clear()
         self.hands_state.clear()
-        self.is_active = False
+        super().release()

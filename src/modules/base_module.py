@@ -1,10 +1,20 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from enum import IntEnum
+from typing import Dict, Any, List, Optional, Tuple
 from src.engine.core.input_manager import HandState
 from src.engine.rendering.request import EffectRequest
+from src.engine.audio.types import AudioRequest, AudioCategory, PlaybackMode
+
+class ModuleState(IntEnum):
+    """Lifecycle states for HeroModule instances."""
+    UNLOADED = 0
+    LOADED = 1
+    INITIALIZED = 2
+    ACTIVE = 3
+    RELEASING = 4
 
 class HeroModule(ABC):
-    """Abstract Base Class defining the life-cycle and integration API
+    """Abstract Base Class defining the lifecycle and integration API
 
     for all Hero modules in HeroEngine.
     """
@@ -16,7 +26,18 @@ class HeroModule(ABC):
             config: A dictionary of configuration options specific to this module.
         """
         self.config = config
-        self.is_active = False
+        self.state = ModuleState.LOADED
+        self._pending_audio_requests: List[AudioRequest] = []
+
+    @property
+    def is_active(self) -> bool:
+        """Returns True if module is currently in ACTIVE state."""
+        return self.state == ModuleState.ACTIVE
+
+    @property
+    def is_initialized(self) -> bool:
+        """Returns True if module has been initialized."""
+        return self.state in (ModuleState.INITIALIZED, ModuleState.ACTIVE)
 
     @property
     @abstractmethod
@@ -28,13 +49,45 @@ class HeroModule(ABC):
         """
         pass
 
+    @property
+    def version(self) -> str:
+        """Returns the module semantic version. Default: '1.0.0'."""
+        return "1.0.0"
+
+    @property
+    def description(self) -> str:
+        """Returns a brief description of module capabilities."""
+        return "HeroEngine Plugin Module"
+
+    @property
+    def author(self) -> str:
+        """Returns the module author/creator."""
+        return "HeroEngine Community"
+
+    @property
+    def icon(self) -> str:
+        """Returns relative path or name of module icon asset."""
+        return "icon.png"
+
     @abstractmethod
     def initialize(self) -> None:
-        """Called once when the engine activates this module.
-
-        Set up initial state parameters and CPU components.
-        """
+        """Called once when the engine instantiates/prepares this module."""
         pass
+
+    def on_activate(self) -> None:
+        """Called when this module becomes the active module receiving updates/inputs.
+
+        Can be overridden by subclasses.
+        """
+        self.state = ModuleState.ACTIVE
+
+    def on_deactivate(self) -> None:
+        """Called when another module is activated, putting this module into background.
+
+        Can be overridden by subclasses.
+        """
+        if self.state == ModuleState.ACTIVE:
+            self.state = ModuleState.INITIALIZED
 
     @abstractmethod
     def process_input(self, active_hands: Dict[str, HandState]) -> None:
@@ -63,8 +116,38 @@ class HeroModule(ABC):
         """
         pass
 
+    def emit_sound(
+        self,
+        sound_id: str,
+        volume: float = 1.0,
+        playback_mode: PlaybackMode = PlaybackMode.ONCE,
+        category: AudioCategory = AudioCategory.SFX,
+        position: Optional[Tuple[float, float, float]] = None,
+        cooldown_ms: float = 0.0
+    ) -> None:
+        """Helper method to enqueue an AudioRequest for harvesting at the end of tick."""
+        req = AudioRequest(
+            sound_id=sound_id,
+            volume=volume,
+            playback_mode=playback_mode,
+            category=category,
+            position=position,
+            cooldown_ms=cooldown_ms,
+            module_name=self.name
+        )
+        self._pending_audio_requests.append(req)
+
+    def get_audio_requests(self) -> List[AudioRequest]:
+        """Harvests and flushes pending audio requests accumulated during the frame tick.
+
+        Returns:
+            List[AudioRequest]: List of audio requests to be executed by SoundManager.
+        """
+        requests = list(self._pending_audio_requests)
+        self._pending_audio_requests.clear()
+        return requests
+
     @abstractmethod
     def release(self) -> None:
-        """Releases and cleans up allocated module CPU resources."""
-        pass
-
+        """Releases and cleans up allocated module CPU/GPU resources."""
+        self.state = ModuleState.UNLOADED

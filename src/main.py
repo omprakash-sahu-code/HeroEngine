@@ -56,40 +56,68 @@ def main():
         window.close()
         sys.exit(1)
 
-    # 4. Initialize Camera Capture Subsystem
+    # 4. Initialize Asynchronous Vision Pipeline (Camera Source + MediaPipe Detector)
+    from src.engine.vision import CameraCapture, HandDetector, VisionPipeline
     camera_config = config.get("camera", {})
-    camera = CameraCapture(camera_config)
-    if not camera.start():
-        logger.critical("Failed to start camera capture.")
-        window.close()
-        sys.exit(1)
-
-    # 5. Initialize MediaPipe Hand tracking
     tracking_config = config.get("tracking", {}).get("hands", {})
+    
+    camera = CameraCapture(camera_config)
     detector = HandDetector(tracking_config)
-    try:
-        detector.initialize()
-    except Exception as e:
-        logger.critical(f"Failed to initialize hand detector: {e}")
-        camera.stop()
+    vision_pipeline = VisionPipeline(camera, detector)
+    if not vision_pipeline.start():
+        logger.critical("Failed to start asynchronous vision pipeline.")
         window.close()
         sys.exit(1)
 
-    # 6. Initialize Performance Monitor
+    # 6. Initialize Sound Engine Subsystem
+    from src.engine.audio import SoundManager
+    sound_manager = SoundManager(config)
+    
+    # Discover sound assets in core engine and active modules
+    sounds_dir = os.path.join(os.path.dirname(__file__), "assets", "sounds")
+    sound_manager.discover_sounds(sounds_dir)
+
+    # Initialize Performance Monitor
     monitor = PerformanceMonitor()
     
     # Initialize Input Manager
     input_manager = InputManager(config)
 
-    # Initialize Active Hero Module Discovery & Loading
+    # Initialize Active Hero Module Discovery, Loading, & Lifecycle Management
+    from src.engine.core.module_registry import ModuleRegistry
+    from src.engine.core.module_loader import ModuleLoader
+    from src.engine.core.module_manager import ModuleManager
+
     modules_dir = os.path.join(os.path.dirname(__file__), "modules")
-    module_manager = ModuleManager(modules_dir)
-    module_manager.discover_modules()
+    registry = ModuleRegistry(modules_dir)
+    registry.discover()
+
+    # Discover sound assets in all module asset subfolders
+    for mod_meta in registry.list_modules():
+        mod_sound_dir = os.path.join(modules_dir, mod_meta.name, "assets", "sounds")
+        sound_manager.discover_sounds(mod_sound_dir)
+
+    loader = ModuleLoader(registry)
+    module_manager = ModuleManager(registry, loader)
     
     active_module_name = config.get("module", {}).get("active", "sorcerer")
-    active_module = module_manager.load_module(active_module_name, config)
-    if active_module:
-        active_module.initialize()
+    module_manager.switch_module(active_module_name, config)
+
+    # Register hotkey callbacks for dynamic module cycling (TAB / SHIFT+TAB), code hot-reloading (R), and F3 HUD toggle
+    import glfw
+    from src.engine.core.profiler_types import ProfileSection
+
+    def on_key(key, scancode, action, mods):
+        if action == glfw.PRESS:
+            if key == glfw.KEY_TAB:
+                forward = not bool(mods & glfw.MOD_SHIFT)
+                module_manager.cycle_module(forward=forward, config=config)
+            elif key == glfw.KEY_R:
+                module_manager.reload_active(config=config)
+            elif key == glfw.KEY_F3:
+                monitor.toggle_display()
+
+    window.register_key_callback(on_key)
 
     # 7. Bind resize callback
     def on_resize(w, h):
@@ -111,8 +139,7 @@ def main():
         bg_shader = ShaderProgram(ctx, vert_shader_path, frag_shader_path)
     except Exception as e:
         logger.critical(f"Failed to compile background shaders: {e}")
-        detector.release()
-        camera.stop()
+        vision_pipeline.stop()
         window.close()
         sys.exit(1)
 
@@ -143,29 +170,33 @@ def main():
     while not window.should_close():
         # A. Track tick duration
         dt = monitor.tick()
+        active_module = module_manager.active_module
         
         # B. Run active module simulation updates (sparks decay, timers)
         if active_module:
-            active_module.update(dt)
+            with monitor.profile(ProfileSection.MODULE_UPDATE):
+                active_module.update(dt)
+            
+            # Harvest & process audio requests from active module
+            with monitor.profile(ProfileSection.AUDIO_PROCESS):
+                audio_reqs = active_module.get_audio_requests()
+                if audio_reqs:
+                    sound_manager.process_requests(audio_reqs)
         
-        # B. Read Camera Frame
-        monitor.start_timer("webcam_read")
-        frame = camera.read_frame()
-        monitor.stop_timer("webcam_read")
+        # C. Read non-blocking VisionResult packet from asynchronous pipeline
+        with monitor.profile(ProfileSection.VISION_FETCH):
+            vision_result = vision_pipeline.get_latest_result()
+            frame = vision_result.frame if vision_result else None
+            hands_data = list(vision_result.hands_data) if vision_result else []
         
-        hands_data = []
         if frame is not None:
-            # C. Run MediaPipe Hands Tracking
-            monitor.start_timer("hands_tracking")
-            hands_data = detector.process_frame(frame)
-            monitor.stop_timer("hands_tracking")
-            
             # Feed raw tracking results into InputManager
-            input_manager.update(hands_data)
-            
-            # Feed tracking states to active module
-            if active_module:
-                active_module.process_input(input_manager.get_hands())
+            with monitor.profile(ProfileSection.INPUT_UPDATE):
+                input_manager.update(hands_data)
+                
+                # Feed tracking states to active module
+                if active_module:
+                    active_module.process_input(input_manager.get_hands())
             
             # Print hand details periodically to verify tracking and gesture state
             active_hands = input_manager.get_hands()
@@ -182,10 +213,8 @@ def main():
                     )
 
             # D. Upload Frame to GPU Texture
-            monitor.start_timer("texture_upload")
-            # Raw cv2 images are contiguous ndarrays
-            camera_texture.write(frame.tobytes())
-            monitor.stop_timer("texture_upload")
+            with monitor.profile(ProfileSection.TEXTURE_UPLOAD):
+                camera_texture.write(frame.tobytes())
 
         # E. Begin Post-Processing Pass (binds offscreen scene FBO)
         pipeline.begin()
@@ -193,36 +222,35 @@ def main():
         # Clear buffer
         renderer.clear()
 
-        # F. Draw Full-Screen Camera Background Feed
+        # F. Draw Full-Screen Camera Background Feed and Hero Module effects
         if frame is not None:
-            monitor.start_timer("render_background")
             camera_texture.use(0)
             bg_shader.set_uniform("u_texture", 0)
             vao.render(moderngl.TRIANGLES)
-            monitor.stop_timer("render_background")
             
-            # G. Draw Hero Module spell effect requests
             if active_module:
-                monitor.start_timer("render_effects")
                 effect_requests = active_module.get_render_requests()
                 aspect = window.width / window.height if window.height > 0 else 1.777
                 current_time = time.perf_counter()
                 renderer.draw_effects(effect_requests, aspect, current_time)
-                monitor.stop_timer("render_effects")
 
         # H. End Post-Processing Pass (restores screen FBO, runs threshold, blur, bloom blend)
-        monitor.start_timer("post_processing")
-        pipeline.end()
-        monitor.stop_timer("post_processing")
+        with monitor.profile(ProfileSection.POST_PROCESS):
+            pipeline.end()
 
-        # G. Display Performance Metrics periodically
+        # G. Display Performance Metrics periodically if F3 display is enabled
         frame_count += 1
-        if frame_count % 90 == 0:
-            monitor.log_metrics()
+        if monitor.display_enabled and frame_count % 90 == 0:
+            snapshot = monitor.get_snapshot(
+                vision_stats=vision_pipeline.get_stats(),
+                active_module_name=active_module.name if active_module else "none"
+            )
+            monitor.log_metrics(snapshot)
 
         # H. Refresh window
-        window.swap_buffers()
-        window.poll_events()
+        with monitor.profile(ProfileSection.RENDER_SWAP):
+            window.swap_buffers()
+            window.poll_events()
 
     # 12. Shutdown and cleanup
     logger.info("Cleaning up resources...")
@@ -239,8 +267,8 @@ def main():
     vbo.release()
     bg_shader.release()
     camera_texture.release()
-    detector.release()
-    camera.stop()
+    vision_pipeline.stop()
+    sound_manager.release()
     window.close()
     logger.info("Shutdown completed successfully.")
 
