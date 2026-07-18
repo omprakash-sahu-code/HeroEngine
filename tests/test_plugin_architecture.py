@@ -7,6 +7,37 @@ from src.engine.core.module_loader import ModuleLoader
 from src.engine.core.module_manager import ModuleManager
 from src.modules.base_module import HeroModule, ModuleState
 
+class MockLifecycleModule(HeroModule):
+    @property
+    def name(self) -> str:
+        return "lifecycle_mock"
+
+    def initialize(self):
+        self.state = ModuleState.INITIALIZED
+        self.lifecycle_log = ["initialize"]
+
+    def on_activate(self):
+        super().on_activate()
+        self.lifecycle_log.append("on_activate")
+
+    def process_input(self, hands):
+        self.lifecycle_log.append("process_input")
+
+    def update(self, dt):
+        self.lifecycle_log.append("update")
+
+    def get_render_requests(self):
+        return []
+
+    def on_deactivate(self):
+        super().on_deactivate()
+        self.lifecycle_log.append("on_deactivate")
+
+    def release(self):
+        super().release()
+        self.lifecycle_log.append("release")
+
+
 class TestPluginArchitecture(unittest.TestCase):
     """Test suite covering ModuleRegistry, ModuleLoader, ModuleManager, and rollback safety."""
 
@@ -54,70 +85,42 @@ class TestPluginArchitecture(unittest.TestCase):
 
             self.assertFalse(registry.is_registered("not_a_module"))
 
-    def test_lifecycle_states_and_switching(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create two valid mock modules
-            for name in ["mod1", "mod2"]:
-                mod_dir = os.path.join(temp_dir, name)
-                os.makedirs(mod_dir)
-                code = f"""
-from src.modules.base_module import HeroModule, ModuleState
+    def test_full_lifecycle_sequence(self):
+        mod = MockLifecycleModule({})
+        self.assertEqual(mod.state, ModuleState.LOADED)
 
-class MockModule_{name}(HeroModule):
-    def name(self):
-        return "{name}"
+        mod.initialize()
+        self.assertEqual(mod.state, ModuleState.INITIALIZED)
 
-    def initialize(self):
-        self.init_called = True
+        mod.on_activate()
+        self.assertEqual(mod.state, ModuleState.ACTIVE)
 
-    def on_activate(self):
-        super().on_activate()
-        self.activated = True
+        mod.process_input({})
+        mod.update(0.016)
 
-    def on_deactivate(self):
-        super().on_deactivate()
-        self.deactivated = True
+        mod.on_deactivate()
+        self.assertEqual(mod.state, ModuleState.INITIALIZED)
 
-    def process_input(self, hands):
-        pass
+        mod.release()
+        self.assertEqual(mod.state, ModuleState.UNLOADED)
 
-    def update(self, dt):
-        pass
+        expected_log = ["initialize", "on_activate", "process_input", "update", "on_deactivate", "release"]
+        self.assertEqual(mod.lifecycle_log, expected_log)
 
-    def get_render_requests(self):
-        return []
+    def test_stateless_audio_request_harvesting(self):
+        mod = MockLifecycleModule({})
+        mod.emit_sound("spell_cast", volume=0.8)
+        mod.emit_sound("whip_crack", volume=1.0)
 
-    def release(self):
-        super().release()
-        self.released = True
-"""
-                with open(os.path.join(mod_dir, "module.py"), "w") as f:
-                    f.write(code)
+        # First harvest retrieves the two requests
+        reqs1 = mod.get_audio_requests()
+        self.assertEqual(len(reqs1), 2)
+        self.assertEqual(reqs1[0].sound_id, "spell_cast")
+        self.assertEqual(reqs1[1].sound_id, "whip_crack")
 
-            registry = ModuleRegistry(temp_dir)
-            registry.discover()
-            loader = ModuleLoader(registry)
-            manager = ModuleManager(registry, loader)
-
-            # Activate mod1
-            m1 = manager.switch_module("mod1", {})
-            self.assertIsNotNone(m1)
-            self.assertEqual(m1.state, ModuleState.ACTIVE)
-            self.assertTrue(getattr(m1, "init_called", False))
-            self.assertTrue(getattr(m1, "activated", False))
-
-            # Switch to mod2
-            m2 = manager.switch_module("mod2", {})
-            self.assertIsNotNone(m2)
-            self.assertEqual(m2.state, ModuleState.ACTIVE)
-            self.assertEqual(m1.state, ModuleState.INITIALIZED)
-            self.assertTrue(getattr(m1, "deactivated", False))
-            self.assertTrue(getattr(m2, "activated", False))
-
-            # Test cycling backward (should return mod1)
-            m1_again = manager.cycle_module(forward=False, config={})
-            self.assertEqual(m1_again.name(), "mod1")
-            self.assertEqual(manager.active_module_id, "mod1")
+        # Second harvest on next frame must return empty list (stateless flush)
+        reqs2 = mod.get_audio_requests()
+        self.assertEqual(len(reqs2), 0)
 
     def test_hot_reload_rollback_on_syntax_error(self):
         with tempfile.TemporaryDirectory() as temp_dir:

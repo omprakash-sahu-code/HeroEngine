@@ -94,6 +94,27 @@ class TestVisionPipeline(unittest.TestCase):
         self.assertTrue(source.stopped)
         self.assertTrue(processor.released)
 
+    def test_pipeline_restartability(self):
+        source = MockFrameSource()
+        processor = MockVisionProcessor()
+        pipeline = VisionPipeline(source, processor)
+
+        # First Start-Stop cycle
+        self.assertTrue(pipeline.start())
+        time.sleep(0.1)
+        self.assertEqual(pipeline.state, PipelineState.RUNNING)
+        pipeline.stop()
+        self.assertEqual(pipeline.state, PipelineState.STOPPED)
+
+        # Second Start-Stop cycle (thread restartability check)
+        self.assertTrue(pipeline.start())
+        time.sleep(0.1)
+        self.assertEqual(pipeline.state, PipelineState.RUNNING)
+        res = pipeline.get_latest_result()
+        self.assertIsNotNone(res)
+        pipeline.stop()
+        self.assertEqual(pipeline.state, PipelineState.STOPPED)
+
     def test_camera_disconnect_and_dropped_frames_recovery(self):
         # FrameSource fails initial 3 reads (simulating camera disconnect) then succeeds
         source = MockFrameSource(fail_reads=3)
