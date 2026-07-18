@@ -69,7 +69,15 @@ def main():
         window.close()
         sys.exit(1)
 
-    # 6. Initialize Performance Monitor
+    # 6. Initialize Sound Engine Subsystem
+    from src.engine.audio import SoundManager
+    sound_manager = SoundManager(config)
+    
+    # Discover sound assets in core engine and active modules
+    sounds_dir = os.path.join(os.path.dirname(__file__), "assets", "sounds")
+    sound_manager.discover_sounds(sounds_dir)
+
+    # Initialize Performance Monitor
     monitor = PerformanceMonitor()
     
     # Initialize Input Manager
@@ -83,6 +91,11 @@ def main():
     modules_dir = os.path.join(os.path.dirname(__file__), "modules")
     registry = ModuleRegistry(modules_dir)
     registry.discover()
+
+    # Discover sound assets in all module asset subfolders
+    for mod_meta in registry.list_modules():
+        mod_sound_dir = os.path.join(modules_dir, mod_meta.name, "assets", "sounds")
+        sound_manager.discover_sounds(mod_sound_dir)
 
     loader = ModuleLoader(registry)
     module_manager = ModuleManager(registry, loader)
@@ -158,6 +171,10 @@ def main():
         # B. Run active module simulation updates (sparks decay, timers)
         if active_module:
             active_module.update(dt)
+            # Harvest & process audio requests from active module
+            audio_reqs = active_module.get_audio_requests()
+            if audio_reqs:
+                sound_manager.process_requests(audio_reqs)
         
         # C. Read non-blocking VisionResult packet from asynchronous pipeline
         vision_result = vision_pipeline.get_latest_result()
@@ -245,6 +262,7 @@ def main():
     bg_shader.release()
     camera_texture.release()
     vision_pipeline.stop()
+    sound_manager.release()
     window.close()
     logger.info("Shutdown completed successfully.")
 

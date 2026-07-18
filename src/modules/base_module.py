@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
 from src.engine.core.input_manager import HandState
 from src.engine.rendering.request import EffectRequest
+from src.engine.audio.types import AudioRequest, AudioCategory, PlaybackMode
 
 class ModuleState(IntEnum):
     """Lifecycle states for HeroModule instances."""
@@ -26,6 +27,7 @@ class HeroModule(ABC):
         """
         self.config = config
         self.state = ModuleState.LOADED
+        self._pending_audio_requests: List[AudioRequest] = []
 
     @property
     def is_active(self) -> bool:
@@ -113,6 +115,37 @@ class HeroModule(ABC):
             List[EffectRequest]: Emitter commands processed by the core renderer.
         """
         pass
+
+    def emit_sound(
+        self,
+        sound_id: str,
+        volume: float = 1.0,
+        playback_mode: PlaybackMode = PlaybackMode.ONCE,
+        category: AudioCategory = AudioCategory.SFX,
+        position: Optional[Tuple[float, float, float]] = None,
+        cooldown_ms: float = 0.0
+    ) -> None:
+        """Helper method to enqueue an AudioRequest for harvesting at the end of tick."""
+        req = AudioRequest(
+            sound_id=sound_id,
+            volume=volume,
+            playback_mode=playback_mode,
+            category=category,
+            position=position,
+            cooldown_ms=cooldown_ms,
+            module_name=self.name
+        )
+        self._pending_audio_requests.append(req)
+
+    def get_audio_requests(self) -> List[AudioRequest]:
+        """Harvests and flushes pending audio requests accumulated during the frame tick.
+
+        Returns:
+            List[AudioRequest]: List of audio requests to be executed by SoundManager.
+        """
+        requests = list(self._pending_audio_requests)
+        self._pending_audio_requests.clear()
+        return requests
 
     @abstractmethod
     def release(self) -> None:

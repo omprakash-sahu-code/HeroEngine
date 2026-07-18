@@ -91,6 +91,8 @@ class SorcererModule(HeroModule):
                         damping=0.93,
                         initial_anchor=(x_ndc, y_ndc)
                     )
+                    # Emit sound when whip is initially created
+                    self.emit_sound("whip_crack", volume=0.8, cooldown_ms=400.0)
                 
                 whip = self.whips[label]
                 whip.update((x_ndc, y_ndc), dt)
@@ -109,8 +111,9 @@ class SorcererModule(HeroModule):
                 if label in self.whips:
                     del self.whips[label]
 
+                self.emit_sound("spell_charge", volume=0.7, cooldown_ms=350.0)
+
                 # Spell-Charge Vortex: Emit sparks spiraling inward to the palm using spell_charge preset
-                # Spawn 3 spiral particles per frame per hand
                 for _ in range(3):
                     self.pending_emissions.append({
                         "center": (x_ndc, y_ndc),
@@ -122,6 +125,8 @@ class SorcererModule(HeroModule):
                 # Remove active whips if transitioning to open palm
                 if label in self.whips:
                     del self.whips[label]
+
+                self.emit_sound("shield_summon", volume=0.9, cooldown_ms=500.0)
 
                 # Soft ambient sparks floating from the edges of the shield
                 if np.random.rand() < 0.3:

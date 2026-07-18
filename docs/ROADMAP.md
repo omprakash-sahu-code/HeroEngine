@@ -42,7 +42,7 @@ This document outlines the multi-phase timeline and milestones for development, 
 * **Milestones:**
   1. [x] Refine the dynamic loader in `src/engine/core/engine.py` to auto-detect modules inside `src/modules/` dynamically.
   2. [x] Abstract and clean up the `vision/` wrappers to run in independent threads/processes via multiprocessing, preventing UI frame lag.
-  3. [ ] Standardize sound effect playback engine (using frame-requests & abstract backend).
+  3. [x] Standardize sound effect playback engine (using frame-requests & abstract backend).
   4. [ ] Build a lightweight profiling utility (`src/engine/core/monitor.py`) displaying FPS, tracking latency, GPU compile times, and system load overlays.
   5. [ ] Write unit tests for math utilities, gesture recognizers, and module loading lifecycle.
 
