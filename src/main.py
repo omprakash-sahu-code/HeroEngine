@@ -103,8 +103,10 @@ def main():
     active_module_name = config.get("module", {}).get("active", "sorcerer")
     module_manager.switch_module(active_module_name, config)
 
-    # Register hotkey callbacks for dynamic module cycling (TAB / SHIFT+TAB) and code hot-reloading (R)
+    # Register hotkey callbacks for dynamic module cycling (TAB / SHIFT+TAB), code hot-reloading (R), and F3 HUD toggle
     import glfw
+    from src.engine.core.profiler_types import ProfileSection
+
     def on_key(key, scancode, action, mods):
         if action == glfw.PRESS:
             if key == glfw.KEY_TAB:
@@ -112,6 +114,8 @@ def main():
                 module_manager.cycle_module(forward=forward, config=config)
             elif key == glfw.KEY_R:
                 module_manager.reload_active(config=config)
+            elif key == glfw.KEY_F3:
+                monitor.toggle_display()
 
     window.register_key_callback(on_key)
 
@@ -170,24 +174,29 @@ def main():
         
         # B. Run active module simulation updates (sparks decay, timers)
         if active_module:
-            active_module.update(dt)
+            with monitor.profile(ProfileSection.MODULE_UPDATE):
+                active_module.update(dt)
+            
             # Harvest & process audio requests from active module
-            audio_reqs = active_module.get_audio_requests()
-            if audio_reqs:
-                sound_manager.process_requests(audio_reqs)
+            with monitor.profile(ProfileSection.AUDIO_PROCESS):
+                audio_reqs = active_module.get_audio_requests()
+                if audio_reqs:
+                    sound_manager.process_requests(audio_reqs)
         
         # C. Read non-blocking VisionResult packet from asynchronous pipeline
-        vision_result = vision_pipeline.get_latest_result()
-        frame = vision_result.frame if vision_result else None
-        hands_data = list(vision_result.hands_data) if vision_result else []
+        with monitor.profile(ProfileSection.VISION_FETCH):
+            vision_result = vision_pipeline.get_latest_result()
+            frame = vision_result.frame if vision_result else None
+            hands_data = list(vision_result.hands_data) if vision_result else []
         
         if frame is not None:
             # Feed raw tracking results into InputManager
-            input_manager.update(hands_data)
-            
-            # Feed tracking states to active module
-            if active_module:
-                active_module.process_input(input_manager.get_hands())
+            with monitor.profile(ProfileSection.INPUT_UPDATE):
+                input_manager.update(hands_data)
+                
+                # Feed tracking states to active module
+                if active_module:
+                    active_module.process_input(input_manager.get_hands())
             
             # Print hand details periodically to verify tracking and gesture state
             active_hands = input_manager.get_hands()
@@ -204,10 +213,8 @@ def main():
                     )
 
             # D. Upload Frame to GPU Texture
-            monitor.start_timer("texture_upload")
-            # Raw cv2 images are contiguous ndarrays
-            camera_texture.write(frame.tobytes())
-            monitor.stop_timer("texture_upload")
+            with monitor.profile(ProfileSection.TEXTURE_UPLOAD):
+                camera_texture.write(frame.tobytes())
 
         # E. Begin Post-Processing Pass (binds offscreen scene FBO)
         pipeline.begin()
@@ -215,36 +222,35 @@ def main():
         # Clear buffer
         renderer.clear()
 
-        # F. Draw Full-Screen Camera Background Feed
+        # F. Draw Full-Screen Camera Background Feed and Hero Module effects
         if frame is not None:
-            monitor.start_timer("render_background")
             camera_texture.use(0)
             bg_shader.set_uniform("u_texture", 0)
             vao.render(moderngl.TRIANGLES)
-            monitor.stop_timer("render_background")
             
-            # G. Draw Hero Module spell effect requests
             if active_module:
-                monitor.start_timer("render_effects")
                 effect_requests = active_module.get_render_requests()
                 aspect = window.width / window.height if window.height > 0 else 1.777
                 current_time = time.perf_counter()
                 renderer.draw_effects(effect_requests, aspect, current_time)
-                monitor.stop_timer("render_effects")
 
         # H. End Post-Processing Pass (restores screen FBO, runs threshold, blur, bloom blend)
-        monitor.start_timer("post_processing")
-        pipeline.end()
-        monitor.stop_timer("post_processing")
+        with monitor.profile(ProfileSection.POST_PROCESS):
+            pipeline.end()
 
-        # G. Display Performance Metrics periodically
+        # G. Display Performance Metrics periodically if F3 display is enabled
         frame_count += 1
-        if frame_count % 90 == 0:
-            monitor.log_metrics()
+        if monitor.display_enabled and frame_count % 90 == 0:
+            snapshot = monitor.get_snapshot(
+                vision_stats=vision_pipeline.get_stats(),
+                active_module_name=active_module.name if active_module else "none"
+            )
+            monitor.log_metrics(snapshot)
 
         # H. Refresh window
-        window.swap_buffers()
-        window.poll_events()
+        with monitor.profile(ProfileSection.RENDER_SWAP):
+            window.swap_buffers()
+            window.poll_events()
 
     # 12. Shutdown and cleanup
     logger.info("Cleaning up resources...")
