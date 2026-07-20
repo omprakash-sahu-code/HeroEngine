@@ -1,5 +1,16 @@
 from typing import Dict, Any
 
+class EffectType:
+    """Standardized rendering effect identifiers."""
+    ORB = "orb"
+    SHIELD = "shield"
+    PARTICLES = "particles"
+    WHIP = "whip"
+    REPULSOR_RING = "repulsor_ring"
+    REPULSOR_BEAM = "repulsor_beam"
+    REPULSOR_FLASH = "repulsor_flash"
+    HUD_TARGET = "hud_target"
+
 class EffectRequest:
     """A data structure representing a decoupled drawing command emitted by HeroModules.
 

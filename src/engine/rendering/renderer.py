@@ -51,7 +51,6 @@ class Renderer:
         
         # 1. Compile Shaders
         try:
-            # Billboard vertex shader shared by Orb and Shield
             billboard_vert = os.path.join(shader_dir, "billboard.vert")
             
             self.orb_shader = ShaderProgram(
@@ -63,6 +62,16 @@ class Renderer:
                 self.ctx, billboard_vert, os.path.join(shader_dir, "shield.frag")
             )
             logger.info("Compiled Shield shaders successfully.")
+
+            self.repulsor_shader = ShaderProgram(
+                self.ctx, billboard_vert, os.path.join(shader_dir, "repulsor.frag")
+            )
+            logger.info("Compiled Repulsor shaders successfully.")
+
+            self.hud_shader = ShaderProgram(
+                self.ctx, billboard_vert, os.path.join(shader_dir, "hud.frag")
+            )
+            logger.info("Compiled HUD shaders successfully.")
         except Exception as e:
             logger.critical(f"Failed compiling VFX shaders: {e}")
             raise e
@@ -155,6 +164,52 @@ class Renderer:
                 
                 self.billboard_vao.render(moderngl.TRIANGLES)
                 
+            elif req.effect_type in ("repulsor_ring", "repulsor_beam", "repulsor_flash"):
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.25)
+                color = req.data.get("color", (0.2, 0.8, 1.0))
+                charge = req.data.get("charge", 1.0)
+                beam_end = req.data.get("beam_end", (0.0, 0.0))
+                
+                mode_map = {"repulsor_ring": 0, "repulsor_beam": 1, "repulsor_flash": 2}
+                mode_val = mode_map[req.effect_type]
+                
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                
+                self.repulsor_shader.use()
+                self.repulsor_shader.set_uniform("u_center", center)
+                self.repulsor_shader.set_uniform("u_radius", radius)
+                self.repulsor_shader.set_uniform("u_aspect", aspect)
+                self.repulsor_shader.set_uniform("u_color", color)
+                self.repulsor_shader.set_uniform("u_charge", charge)
+                self.repulsor_shader.set_uniform("u_time", time_elapsed)
+                self.repulsor_shader.set_uniform("u_mode", mode_val)
+                self.repulsor_shader.set_uniform("u_beam_end", beam_end)
+                
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "hud_target":
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.2)
+                color = req.data.get("color", (0.1, 0.9, 1.0))
+                locked = req.data.get("locked", 0.0)
+                rotation = req.data.get("rotation", time_elapsed * 0.5)
+                
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                
+                self.hud_shader.use()
+                self.hud_shader.set_uniform("u_center", center)
+                self.hud_shader.set_uniform("u_radius", radius)
+                self.hud_shader.set_uniform("u_aspect", aspect)
+                self.hud_shader.set_uniform("u_color", color)
+                self.hud_shader.set_uniform("u_time", time_elapsed)
+                self.hud_shader.set_uniform("u_locked", float(locked))
+                self.hud_shader.set_uniform("u_rotation", rotation)
+                
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
             elif req.effect_type == "emit_particles":
                 center = req.data.get("center", (0.0, 0.0))
                 count = req.data.get("count", 0)
@@ -187,4 +242,6 @@ class Renderer:
         if self.gpu_particles: self.gpu_particles.release()
         if self.orb_shader: self.orb_shader.release()
         if self.shield_shader: self.shield_shader.release()
+        if hasattr(self, "repulsor_shader") and self.repulsor_shader: self.repulsor_shader.release()
+        if hasattr(self, "hud_shader") and self.hud_shader: self.hud_shader.release()
         logger.info("Core Renderer GPU resources released cleanly.")
