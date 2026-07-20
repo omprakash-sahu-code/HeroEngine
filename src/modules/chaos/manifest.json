@@ -1,0 +1,26 @@
+{
+  "id": "chaos",
+  "name": "Chaos Engine",
+  "version": "1.0.0",
+  "author": "HeroEngine Community",
+  "description": "Telekinetic force field & screen distortion engine",
+  "icon": "icon.png",
+  "display_name": "Chaos Engine",
+  "procedural": [
+    "wisp_generator"
+  ],
+  "physics": [
+    "force_field"
+  ],
+  "effects": [
+    "wisp_arc",
+    "distortion_field"
+  ],
+  "audio": [
+    "chaos_hum",
+    "chaos_blast"
+  ],
+  "gestures": [
+    "CLAW_HAND"
+  ]
+}

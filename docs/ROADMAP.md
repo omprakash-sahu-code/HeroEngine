@@ -51,19 +51,19 @@ This document outlines the multi-phase timeline and milestones for development, 
 ## Phase 4: Expansion Modules (Future Roadmap)
 With a stabilized framework, we will develop subsequent modules mimicking other powers:
 
-### 1. Iron Module (Energy & UI HUD)
+### 1. [x]Iron Module (Energy & UI HUD)
 * **Visuals:** Repulsor beam rendering (GLSL circular charging and particle beam blast), high-tech glassmorphism HUD tracking head movements.
 * **Gestures:** Wrist flexed upwards (facing palms forward) to fire repulsors.
 
-### 2. Spider Module (Web-slinging & Physics)
+### 2. [x]Spider Module (Web-slinging & Physics)
 * **Visuals:** Web lines attached to physical screen coordinates, real-time rope physics using Verlet integration.
 * **Gestures:** Double finger shoot (spider gesture) to deploy webs.
 
-### 3. Thunder Module (Electricity & Storm)
+### 3. []Thunder Module (Electricity & Storm)
 * **Visuals:** Branching lightning bolt shaders, screenshake, glowing lightning eyes (pose mesh tracking).
 * **Gestures:** Raised hands clenched in fists to summon lightning from above.
 
-### 4. Chaos Module (Telekinetic Manipulation)
+### 4. []Chaos Module (Telekinetic Manipulation)
 * **Visuals:** Red energy wisps swirling around fingers, object warping, telekinetic force fields.
 * **Gestures:** Curved fingers facing down, moving hands dynamically to grab/push pixels.
 

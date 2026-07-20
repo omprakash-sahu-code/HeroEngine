@@ -1,0 +1,18 @@
+{
+  "id": "iron",
+  "name": "Iron Engine",
+  "version": "1.0.0",
+  "author": "HeroEngine Community",
+  "description": "Repulsor Beam energy weapons & high-tech Glassmorphism HUD",
+  "icon": "icon.png",
+  "display_name": "Iron Engine",
+  "effects": [
+    "repulsor_ring",
+    "repulsor_beam",
+    "repulsor_flash",
+    "hud_target"
+  ],
+  "gestures": [
+    "Open Palm"
+  ]
+}

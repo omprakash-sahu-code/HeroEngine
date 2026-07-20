@@ -1,0 +1,28 @@
+{
+  "id": "thunder",
+  "name": "Thunder Engine",
+  "version": "1.0.0",
+  "author": "HeroEngine Community",
+  "description": "Procedural branching lightning & camera impulse engine",
+  "icon": "icon.png",
+  "display_name": "Thunder Engine",
+  "procedural": [
+    "lightning_generator"
+  ],
+  "camera": [
+    "shake"
+  ],
+  "effects": [
+    "polyline",
+    "eye_aura"
+  ],
+  "audio": [
+    "thunder_charge",
+    "thunder_strike",
+    "thunder_rumble"
+  ],
+  "gestures": [
+    "RAISED_CLOSED_FIST",
+    "DUAL_RAISED_FISTS"
+  ]
+}

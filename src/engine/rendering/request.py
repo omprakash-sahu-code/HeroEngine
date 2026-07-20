@@ -1,5 +1,23 @@
 from typing import Dict, Any
 
+class EffectType:
+    """Standardized rendering effect identifiers."""
+    ORB = "orb"
+    SHIELD = "shield"
+    PARTICLES = "particles"
+    WHIP = "whip"
+    REPULSOR_RING = "repulsor_ring"
+    REPULSOR_BEAM = "repulsor_beam"
+    REPULSOR_FLASH = "repulsor_flash"
+    HUD_TARGET = "hud_target"
+    POLYLINE = "polyline"
+    WEB_PROJECTILE = "web_projectile"
+    WEB_SPLATCH = "web_splatch"
+    WEB_RETICLE = "web_reticle"
+    EYE_AURA = "eye_aura"
+    WISP_ARC = "wisp_arc"
+    DISTORTION_FIELD = "distortion_field"
+
 class EffectRequest:
     """A data structure representing a decoupled drawing command emitted by HeroModules.
 
@@ -15,3 +33,15 @@ class EffectRequest:
         """
         self.effect_type = effect_type
         self.data: Dict[str, Any] = kwargs
+
+class CameraRequest:
+    """A data structure representing a decoupled camera or viewport manipulation command."""
+
+    def __init__(self, action: str, **kwargs):
+        """Args:
+            action: Command type (e.g. 'shake', 'offset', 'zoom').
+            **kwargs: Action parameters (intensity, duration, frequency, etc.).
+        """
+        self.action = action
+        self.data: Dict[str, Any] = kwargs
+
