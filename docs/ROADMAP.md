@@ -55,7 +55,7 @@ With a stabilized framework, we will develop subsequent modules mimicking other 
 * **Visuals:** Repulsor beam rendering (GLSL circular charging and particle beam blast), high-tech glassmorphism HUD tracking head movements.
 * **Gestures:** Wrist flexed upwards (facing palms forward) to fire repulsors.
 
-### 2. []Spider Module (Web-slinging & Physics)
+### 2. [x]Spider Module (Web-slinging & Physics)
 * **Visuals:** Web lines attached to physical screen coordinates, real-time rope physics using Verlet integration.
 * **Gestures:** Double finger shoot (spider gesture) to deploy webs.
 

@@ -67,38 +67,38 @@ class TestGestureRecognition(unittest.TestCase):
 
     def test_closed_fist_detection(self):
         landmarks = create_base_hand()
-        landmarks[0] = (0.0, 0.0, 0.0)
-        landmarks[9] = (0.0, 0.2, 0.0)
+        landmarks[0] = (0.0, 0.5, 0.0) # Wrist at y = 0.5 (middle of frame)
+        landmarks[9] = (0.0, 0.7, 0.0)
         
         # Thumb curled
-        landmarks[1] = (0.05, 0.0, 0.0)
-        landmarks[2] = (0.08, 0.0, 0.0)
-        landmarks[3] = (0.06, 0.0, 0.0)
-        landmarks[4] = (0.04, 0.0, 0.0)
+        landmarks[1] = (0.05, 0.5, 0.0)
+        landmarks[2] = (0.1, 0.5, 0.0)
+        landmarks[3] = (0.1, 0.52, 0.0)
+        landmarks[4] = (0.05, 0.52, 0.0)
 
         # Index curled
-        landmarks[5] = (-0.05, 0.2, 0.0)
-        landmarks[6] = (-0.05, 0.15, 0.0)
-        landmarks[7] = (-0.05, 0.1, 0.0)
-        landmarks[8] = (-0.05, 0.05, 0.0)
+        landmarks[5] = (-0.05, 0.7, 0.0)
+        landmarks[6] = (-0.05, 0.65, 0.0)
+        landmarks[7] = (-0.05, 0.6, 0.0)
+        landmarks[8] = (-0.05, 0.55, 0.0)
 
         # Middle curled
-        landmarks[9] = (0.0, 0.2, 0.0)
-        landmarks[10] = (0.0, 0.15, 0.0)
-        landmarks[11] = (0.0, 0.1, 0.0)
-        landmarks[12] = (0.0, 0.05, 0.0)
+        landmarks[9] = (0.0, 0.7, 0.0)
+        landmarks[10] = (0.0, 0.65, 0.0)
+        landmarks[11] = (0.0, 0.6, 0.0)
+        landmarks[12] = (0.0, 0.55, 0.0)
 
         # Ring curled
-        landmarks[13] = (0.05, 0.2, 0.0)
-        landmarks[14] = (0.05, 0.15, 0.0)
-        landmarks[15] = (0.05, 0.1, 0.0)
-        landmarks[16] = (0.05, 0.05, 0.0)
+        landmarks[13] = (0.05, 0.7, 0.0)
+        landmarks[14] = (0.05, 0.65, 0.0)
+        landmarks[15] = (0.05, 0.6, 0.0)
+        landmarks[16] = (0.05, 0.55, 0.0)
 
         # Pinky curled
-        landmarks[17] = (0.1, 0.2, 0.0)
-        landmarks[18] = (0.1, 0.15, 0.0)
-        landmarks[19] = (0.1, 0.1, 0.0)
-        landmarks[20] = (0.1, 0.05, 0.0)
+        landmarks[17] = (0.1, 0.7, 0.0)
+        landmarks[18] = (0.1, 0.65, 0.0)
+        landmarks[19] = (0.1, 0.6, 0.0)
+        landmarks[20] = (0.1, 0.55, 0.0)
 
         gesture, conf = self.recognizer.recognize(landmarks)
         self.assertEqual(gesture, "Closed Fist")

@@ -4,7 +4,8 @@ import moderngl
 from typing import Tuple, List, Dict, Any
 from src.engine.utils.logger import setup_logger
 from src.engine.rendering.shader import ShaderProgram
-from src.engine.rendering.request import EffectRequest
+from src.engine.rendering.request import EffectRequest, CameraRequest
+from src.engine.core.camera_impulse import CameraImpulse
 
 logger = setup_logger("Renderer")
 
@@ -77,9 +78,16 @@ class Renderer:
                 self.ctx, billboard_vert, os.path.join(shader_dir, "polyline.frag")
             )
             logger.info("Compiled Polyline shaders successfully.")
+
+            self.lightning_shader = ShaderProgram(
+                self.ctx, billboard_vert, os.path.join(shader_dir, "lightning.frag")
+            )
+            logger.info("Compiled Lightning shaders successfully.")
         except Exception as e:
             logger.critical(f"Failed compiling VFX shaders: {e}")
             raise e
+
+        self.camera_impulse = CameraImpulse()
 
         # 2. Set up Shared Billboard Unit Quad (local coords: X, Y in [-1, 1], U, V in [0, 1])
         quad_vertices = np.array([
@@ -122,6 +130,17 @@ class Renderer:
         if self.ctx:
             self.ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA)
 
+    def process_camera_requests(self, requests: List[CameraRequest], dt: float) -> Tuple[float, float]:
+        """Process decoupled CameraRequest instances and calculate current screen shake offset."""
+        for req in requests:
+            if req.action == "shake":
+                intensity = req.data.get("intensity", 0.05)
+                duration = req.data.get("duration", 0.4)
+                frequency = req.data.get("frequency", 25.0)
+                self.camera_impulse.trigger_impulse(intensity=intensity, duration=duration, frequency=frequency)
+
+        return self.camera_impulse.update(dt)
+
     def draw_effects(self, requests: List[EffectRequest], aspect: float, time_elapsed: float) -> None:
         """Process and render high-level EffectRequest commands.
 
@@ -131,7 +150,24 @@ class Renderer:
             time_elapsed: Total running time in seconds.
         """
         for req in requests:
-            if req.effect_type == "orb":
+            if req.effect_type == "eye_aura":
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.08)
+                color = req.data.get("color", (0.2, 0.8, 1.0))
+                charge = req.data.get("charge", 1.0)
+
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                self.lightning_shader.use()
+                self.lightning_shader.set_uniform("u_center", center)
+                self.lightning_shader.set_uniform("u_radius", radius)
+                self.lightning_shader.set_uniform("u_aspect", aspect)
+                self.lightning_shader.set_uniform("u_color", color)
+                self.lightning_shader.set_uniform("u_time", time_elapsed)
+                self.lightning_shader.set_uniform("u_charge", float(charge))
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "orb":
                 center = req.data.get("center", (0.0, 0.0))
                 radius = req.data.get("radius", 0.18)
                 color = req.data.get("color", (1.0, 0.45, 0.08))
@@ -321,4 +357,5 @@ class Renderer:
         if hasattr(self, "repulsor_shader") and self.repulsor_shader: self.repulsor_shader.release()
         if hasattr(self, "hud_shader") and self.hud_shader: self.hud_shader.release()
         if hasattr(self, "polyline_shader") and self.polyline_shader: self.polyline_shader.release()
+        if hasattr(self, "lightning_shader") and self.lightning_shader: self.lightning_shader.release()
         logger.info("Core Renderer GPU resources released cleanly.")

@@ -76,6 +76,9 @@ class GestureRecognizer:
 
         # Fist heuristic: All 4 main fingers curled
         if curled_count == 4:
+            # Check if wrist (landmarks[0][1]) is raised overhead in top portion of frame (< 0.45)
+            if landmarks[0][1] < 0.45:
+                return "RAISED_CLOSED_FIST", 1.0
             return "Closed Fist", 1.0
 
         # INDEX_PINKY_EXTENDED heuristic: Index (8) & Pinky (20) extended, Middle (12) & Ring (16) curled
