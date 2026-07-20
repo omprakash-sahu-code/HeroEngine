@@ -10,6 +10,10 @@ class EffectType:
     REPULSOR_BEAM = "repulsor_beam"
     REPULSOR_FLASH = "repulsor_flash"
     HUD_TARGET = "hud_target"
+    POLYLINE = "polyline"
+    WEB_PROJECTILE = "web_projectile"
+    WEB_SPLATCH = "web_splatch"
+    WEB_RETICLE = "web_reticle"
 
 class EffectRequest:
     """A data structure representing a decoupled drawing command emitted by HeroModules.

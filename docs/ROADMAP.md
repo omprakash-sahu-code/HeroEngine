@@ -51,7 +51,7 @@ This document outlines the multi-phase timeline and milestones for development, 
 ## Phase 4: Expansion Modules (Future Roadmap)
 With a stabilized framework, we will develop subsequent modules mimicking other powers:
 
-### 1. []Iron Module (Energy & UI HUD)
+### 1. [x]Iron Module (Energy & UI HUD)
 * **Visuals:** Repulsor beam rendering (GLSL circular charging and particle beam blast), high-tech glassmorphism HUD tracking head movements.
 * **Gestures:** Wrist flexed upwards (facing palms forward) to fire repulsors.
 

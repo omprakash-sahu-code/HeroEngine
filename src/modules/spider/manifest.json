@@ -1,0 +1,27 @@
+{
+  "id": "spider",
+  "name": "Spider Engine",
+  "version": "1.0.0",
+  "author": "HeroEngine Community",
+  "description": "Dynamic web-slinging & constraint rope physics engine",
+  "icon": "icon.png",
+  "display_name": "Spider Engine",
+  "effects": [
+    "polyline",
+    "web_projectile",
+    "web_splatch",
+    "web_reticle"
+  ],
+  "physics": [
+    "verlet_rope"
+  ],
+  "audio": [
+    "web_shoot",
+    "web_attach",
+    "web_pull",
+    "web_snap"
+  ],
+  "gestures": [
+    "INDEX_PINKY_EXTENDED"
+  ]
+}

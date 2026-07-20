@@ -78,6 +78,20 @@ class GestureRecognizer:
         if curled_count == 4:
             return "Closed Fist", 1.0
 
+        # INDEX_PINKY_EXTENDED heuristic: Index (8) & Pinky (20) extended, Middle (12) & Ring (16) curled
+        d_index = self._dist(landmarks[0], landmarks[8])
+        d_pinky = self._dist(landmarks[0], landmarks[20])
+        d_middle = self._dist(landmarks[0], landmarks[12])
+        d_ring = self._dist(landmarks[0], landmarks[16])
+        
+        index_ext = d_index > self._dist(landmarks[0], landmarks[5]) * self.palm_min_extension
+        pinky_ext = d_pinky > self._dist(landmarks[0], landmarks[17]) * self.palm_min_extension
+        middle_curled = d_middle < self._dist(landmarks[0], landmarks[10])
+        ring_curled = d_ring < self._dist(landmarks[0], landmarks[14])
+
+        if index_ext and pinky_ext and middle_curled and ring_curled:
+            return "INDEX_PINKY_EXTENDED", 1.0
+
         # Open Palm heuristic: All 4 main fingers extended, and thumb extended
         if extended_count == 4 and thumb_extended:
             return "Open Palm", 1.0

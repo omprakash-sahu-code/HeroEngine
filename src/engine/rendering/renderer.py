@@ -72,6 +72,11 @@ class Renderer:
                 self.ctx, billboard_vert, os.path.join(shader_dir, "hud.frag")
             )
             logger.info("Compiled HUD shaders successfully.")
+
+            self.polyline_shader = ShaderProgram(
+                self.ctx, billboard_vert, os.path.join(shader_dir, "polyline.frag")
+            )
+            logger.info("Compiled Polyline shaders successfully.")
         except Exception as e:
             logger.critical(f"Failed compiling VFX shaders: {e}")
             raise e
@@ -210,6 +215,77 @@ class Renderer:
                 
                 self.billboard_vao.render(moderngl.TRIANGLES)
 
+            elif req.effect_type == "polyline":
+                points = req.data.get("points", [])
+                color = req.data.get("color", (0.9, 0.95, 1.0))
+                tension = req.data.get("tension", 0.0)
+                thickness = req.data.get("thickness", 1.0)
+
+                if len(points) >= 2:
+                    self.ctx.enable(moderngl.BLEND)
+                    self.set_blend_mode_additive()
+                    self.polyline_shader.use()
+                    self.polyline_shader.set_uniform("u_aspect", aspect)
+                    self.polyline_shader.set_uniform("u_color", color)
+                    self.polyline_shader.set_uniform("u_tension", float(tension))
+                    self.polyline_shader.set_uniform("u_thickness", float(thickness))
+
+                    for i in range(len(points) - 1):
+                        p1 = (points[i][0], points[i][1])
+                        p2 = (points[i+1][0], points[i+1][1])
+                        self.polyline_shader.set_uniform("u_p1", p1)
+                        self.polyline_shader.set_uniform("u_p2", p2)
+                        self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "web_projectile":
+                start = req.data.get("start", (0.0, 0.0))
+                end = req.data.get("end", (0.0, 0.0))
+                color = req.data.get("color", (0.95, 0.95, 1.0))
+                
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                self.polyline_shader.use()
+                self.polyline_shader.set_uniform("u_aspect", aspect)
+                self.polyline_shader.set_uniform("u_color", color)
+                self.polyline_shader.set_uniform("u_tension", 0.0)
+                self.polyline_shader.set_uniform("u_thickness", 1.5)
+                self.polyline_shader.set_uniform("u_p1", (start[0], start[1]))
+                self.polyline_shader.set_uniform("u_p2", (end[0], end[1]))
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "web_splatch":
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.15)
+                color = req.data.get("color", (0.9, 0.95, 1.0))
+
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                self.orb_shader.use()
+                self.orb_shader.set_uniform("u_center", center)
+                self.orb_shader.set_uniform("u_radius", radius)
+                self.orb_shader.set_uniform("u_aspect", aspect)
+                self.orb_shader.set_uniform("u_color", color)
+                self.orb_shader.set_uniform("u_time", time_elapsed)
+                self.orb_shader.set_uniform("u_rotation", 0.0)
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "web_reticle":
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.12)
+                color = req.data.get("color", (0.8, 0.9, 1.0))
+
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                self.hud_shader.use()
+                self.hud_shader.set_uniform("u_center", center)
+                self.hud_shader.set_uniform("u_radius", radius)
+                self.hud_shader.set_uniform("u_aspect", aspect)
+                self.hud_shader.set_uniform("u_color", color)
+                self.hud_shader.set_uniform("u_time", time_elapsed)
+                self.hud_shader.set_uniform("u_locked", 1.0)
+                self.hud_shader.set_uniform("u_rotation", time_elapsed * 0.8)
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
             elif req.effect_type == "emit_particles":
                 center = req.data.get("center", (0.0, 0.0))
                 count = req.data.get("count", 0)
@@ -244,4 +320,5 @@ class Renderer:
         if self.shield_shader: self.shield_shader.release()
         if hasattr(self, "repulsor_shader") and self.repulsor_shader: self.repulsor_shader.release()
         if hasattr(self, "hud_shader") and self.hud_shader: self.hud_shader.release()
+        if hasattr(self, "polyline_shader") and self.polyline_shader: self.polyline_shader.release()
         logger.info("Core Renderer GPU resources released cleanly.")
