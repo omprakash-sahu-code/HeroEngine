@@ -83,6 +83,11 @@ class Renderer:
                 self.ctx, billboard_vert, os.path.join(shader_dir, "lightning.frag")
             )
             logger.info("Compiled Lightning shaders successfully.")
+
+            self.distortion_shader = ShaderProgram(
+                self.ctx, billboard_vert, os.path.join(shader_dir, "distortion.frag")
+            )
+            logger.info("Compiled Distortion shaders successfully.")
         except Exception as e:
             logger.critical(f"Failed compiling VFX shaders: {e}")
             raise e
@@ -150,7 +155,45 @@ class Renderer:
             time_elapsed: Total running time in seconds.
         """
         for req in requests:
-            if req.effect_type == "eye_aura":
+            if req.effect_type == "distortion_field":
+                center = req.data.get("center", (0.0, 0.0))
+                radius = req.data.get("radius", 0.35)
+                color = req.data.get("color", (0.9, 0.1, 0.2))
+                strength = req.data.get("strength", 1.0)
+
+                self.ctx.enable(moderngl.BLEND)
+                self.set_blend_mode_additive()
+                self.distortion_shader.use()
+                self.distortion_shader.set_uniform("u_center", center)
+                self.distortion_shader.set_uniform("u_radius", radius)
+                self.distortion_shader.set_uniform("u_aspect", aspect)
+                self.distortion_shader.set_uniform("u_color", color)
+                self.distortion_shader.set_uniform("u_time", time_elapsed)
+                self.distortion_shader.set_uniform("u_strength", float(strength))
+                self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "wisp_arc":
+                points = req.data.get("points", [])
+                color = req.data.get("color", (1.0, 0.2, 0.3))
+                thickness = req.data.get("thickness", 1.2)
+
+                if len(points) >= 2:
+                    self.ctx.enable(moderngl.BLEND)
+                    self.set_blend_mode_additive()
+                    self.polyline_shader.use()
+                    self.polyline_shader.set_uniform("u_aspect", aspect)
+                    self.polyline_shader.set_uniform("u_color", color)
+                    self.polyline_shader.set_uniform("u_tension", 0.2)
+                    self.polyline_shader.set_uniform("u_thickness", float(thickness))
+
+                    for i in range(len(points) - 1):
+                        p1 = (points[i][0], points[i][1])
+                        p2 = (points[i+1][0], points[i+1][1])
+                        self.polyline_shader.set_uniform("u_p1", p1)
+                        self.polyline_shader.set_uniform("u_p2", p2)
+                        self.billboard_vao.render(moderngl.TRIANGLES)
+
+            elif req.effect_type == "eye_aura":
                 center = req.data.get("center", (0.0, 0.0))
                 radius = req.data.get("radius", 0.08)
                 color = req.data.get("color", (0.2, 0.8, 1.0))
@@ -358,4 +401,5 @@ class Renderer:
         if hasattr(self, "hud_shader") and self.hud_shader: self.hud_shader.release()
         if hasattr(self, "polyline_shader") and self.polyline_shader: self.polyline_shader.release()
         if hasattr(self, "lightning_shader") and self.lightning_shader: self.lightning_shader.release()
+        if hasattr(self, "distortion_shader") and self.distortion_shader: self.distortion_shader.release()
         logger.info("Core Renderer GPU resources released cleanly.")

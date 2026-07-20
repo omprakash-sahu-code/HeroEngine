@@ -95,6 +95,17 @@ class GestureRecognizer:
         if index_ext and pinky_ext and middle_curled and ring_curled:
             return "INDEX_PINKY_EXTENDED", 1.0
 
+        # CLAW_HAND heuristic: fingers partially bent/curved (semi-curled)
+        partially_bent_count = 0
+        for tip, pip, mcp in fingers:
+            d_tip = self._dist(landmarks[0], landmarks[tip])
+            d_mcp = self._dist(landmarks[0], landmarks[mcp])
+            if 0.85 * self._dist(landmarks[0], landmarks[mcp]) <= d_tip <= 1.2 * self._dist(landmarks[0], landmarks[mcp]):
+                partially_bent_count += 1
+
+        if partially_bent_count >= 3 and 1 <= curled_count <= 3:
+            return "CLAW_HAND", 1.0
+
         # Open Palm heuristic: All 4 main fingers extended, and thumb extended
         if extended_count == 4 and thumb_extended:
             return "Open Palm", 1.0

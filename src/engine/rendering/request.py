@@ -15,6 +15,8 @@ class EffectType:
     WEB_SPLATCH = "web_splatch"
     WEB_RETICLE = "web_reticle"
     EYE_AURA = "eye_aura"
+    WISP_ARC = "wisp_arc"
+    DISTORTION_FIELD = "distortion_field"
 
 class EffectRequest:
     """A data structure representing a decoupled drawing command emitted by HeroModules.
