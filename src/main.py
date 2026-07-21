@@ -117,7 +117,8 @@ def main():
 
     # Discover sound assets in all module asset subfolders
     for mod_meta in registry.list_modules():
-        mod_sound_dir = os.path.join(modules_dir, mod_meta.name, "assets", "sounds")
+        mod_dir = mod_meta.get("module_dir", os.path.join(modules_dir, mod_meta.get("id", "")))
+        mod_sound_dir = os.path.join(mod_dir, "assets", "sounds")
         sound_manager.discover_sounds(mod_sound_dir)
 
     loader = ModuleLoader(registry)

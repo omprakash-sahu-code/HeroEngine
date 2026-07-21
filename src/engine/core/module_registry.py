@@ -79,8 +79,12 @@ class ModuleRegistry:
         return self._registry.get(module_id)
 
     def list_all(self) -> Dict[str, Dict[str, Any]]:
-        """Returns a copy of all registered module manifests."""
+        """Returns a copy of all registered module manifests dict."""
         return dict(self._registry)
+
+    def list_modules(self) -> List[Dict[str, Any]]:
+        """Returns a list of all registered module manifest dictionaries."""
+        return list(self._registry.values())
 
     def is_registered(self, module_id: str) -> bool:
         """Returns True if module_id exists in registry."""
