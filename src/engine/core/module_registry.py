@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, List, Any, Optional
 from src.engine.utils.logger import setup_logger
 from src.engine.utils.paths import resource_path
 
