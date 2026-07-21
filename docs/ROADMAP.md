@@ -69,9 +69,9 @@ With a stabilized framework, we will develop subsequent modules mimicking other 
 
 ---
 
-## Phase 5: Production & Distribution
-* **Goal:** Distribute HeroEngine as a compiled app or packaged python library.
+## Phase 5: Production & Distribution (Completed)
+* **Goal:** Distribute HeroEngine as a compiled app, network streamer, and benchmarked engine.
 * **Milestones:**
-  1. [ ] Create a standalone binary packaging system (e.g. PyInstaller configuration).
-  2. [ ] Establish OSC & WebSockets plugin documentation for seamless TouchDesigner and Unity external integrations.
-  3. [ ] Release performance guidelines and benchmark reports on different GPU types.
+  1. [x] Create a standalone binary packaging system (PyInstaller `HeroEngine.spec` & `scripts/build_app.py`).
+  2. [x] Establish OSC & WebSockets telemetry network streaming (`src/engine/network/`) for TouchDesigner, Unreal, and Unity integrations.
+  3. [x] Release automated benchmarking suite, performance regression tool, and `docs/BENCHMARK_REPORT.md`.
