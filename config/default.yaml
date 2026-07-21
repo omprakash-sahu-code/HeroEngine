@@ -45,9 +45,21 @@ tracking:
 # Active module options
 module:
   active: "sorcerer"  # Name of module folder in src/modules/
-  osc_enabled: false
-  osc_ip: "127.0.0.1"
-  osc_port: 8000
+
+# Network Telemetry & External Integration Layer
+network:
+  enabled: true
+  channels: ["hands", "gestures", "module", "camera", "effects", "fps"]
+  osc:
+    enabled: true
+    host: "127.0.0.1"
+    port: 9000
+    rate: 60
+  websocket:
+    enabled: true
+    host: "127.0.0.1"
+    port: 8765
+    rate: 30
 
 # Preset specifications for GPU instanced particle systems
 particle_presets:

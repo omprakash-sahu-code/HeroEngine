@@ -83,6 +83,29 @@ def main():
     # Initialize Input Manager
     input_manager = InputManager(config)
 
+    # Initialize Telemetry Network Layer (OSC & WebSocket Streaming)
+    from src.engine.network.bus import TelemetryBus
+    from src.engine.network.dispatcher import NetworkDispatcher
+    from src.engine.network.osc_transport import OSCTransport
+    from src.engine.network.websocket_transport import WebSocketTransport
+    from src.engine.network.models import TelemetryFrame
+
+    net_config = config.get("network", {})
+    telemetry_bus = TelemetryBus()
+    network_dispatcher = NetworkDispatcher(net_config)
+
+    if net_config.get("enabled", True):
+        osc_cfg = net_config.get("osc", {})
+        if osc_cfg.get("enabled", True):
+            network_dispatcher.add_transport(OSCTransport(osc_cfg.get("host", "127.0.0.1"), osc_cfg.get("port", 9000)))
+
+        ws_cfg = net_config.get("websocket", {})
+        if ws_cfg.get("enabled", True):
+            network_dispatcher.add_transport(WebSocketTransport(ws_cfg.get("host", "127.0.0.1"), ws_cfg.get("port", 8765)))
+
+        network_dispatcher.attach_to_bus(telemetry_bus)
+        network_dispatcher.start()
+
     # Initialize Active Hero Module Discovery, Loading, & Lifecycle Management
     from src.engine.core.module_registry import ModuleRegistry
     from src.engine.core.module_loader import ModuleLoader
@@ -249,11 +272,31 @@ def main():
 
         # H. Refresh window
         with monitor.profile(ProfileSection.RENDER_SWAP):
+            # Publish telemetry frame to TelemetryBus
+            if net_config.get("enabled", True):
+                active_hands = input_manager.get_hands()
+                hands_dict = {
+                    lbl: {"centroid": h.centroid, "pinch": h.pinch_distance, "score": h.score}
+                    for lbl, h in active_hands.items()
+                }
+                gestures_dict = {lbl: h.gesture for lbl, h in active_hands.items()}
+                
+                frame_dto = TelemetryFrame(
+                    timestamp=time.perf_counter(),
+                    frame_number=frame_count,
+                    hands=hands_dict,
+                    gestures=gestures_dict,
+                    module=active_module.name if active_module else None,
+                    fps=monitor.fps
+                )
+                telemetry_bus.publish("frame", frame_dto)
+
             window.swap_buffers()
             window.poll_events()
 
     # 12. Shutdown and cleanup
     logger.info("Cleaning up resources...")
+    network_dispatcher.stop()
     if active_module:
         active_module.release()
         
