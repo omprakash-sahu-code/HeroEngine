@@ -2,6 +2,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 from src.engine.utils.logger import setup_logger
+from src.engine.utils.paths import resource_path
 
 logger = setup_logger("ModuleRegistry")
 
@@ -10,10 +11,12 @@ class ModuleRegistry:
 
     def __init__(self, modules_dir: str):
         """Args:
-
             modules_dir: Directory containing hero module folders.
         """
-        self.modules_dir = os.path.abspath(modules_dir)
+        resolved = resource_path(modules_dir) if not os.path.isabs(modules_dir) else modules_dir
+        if not os.path.exists(resolved):
+            resolved = resource_path(modules_dir)
+        self.modules_dir = os.path.abspath(resolved)
         self._registry: Dict[str, Dict[str, Any]] = {}
 
     def discover(self) -> None:

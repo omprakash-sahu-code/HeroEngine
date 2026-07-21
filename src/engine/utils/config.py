@@ -1,21 +1,24 @@
 import os
 from typing import Dict, Any
 
-def load_config(config_path: str) -> Dict[str, Any]:
-    """Loads configuration data from a YAML file using a pure-Python parser
+from src.engine.utils.paths import resource_path
 
-    to avoid third-party dependencies.
+def load_config(config_path: str) -> Dict[str, Any]:
+    """Loads configuration data from a YAML file using a pure-Python parser.
 
     Args:
-        config_path: Absolute or relative file path to the config file.
+        config_path: File path to the config file.
 
     Returns:
         Dict[str, Any]: Configuration dictionary.
     """
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        
-    with open(config_path, 'r', encoding='utf-8') as file:
+    resolved_path = resource_path(config_path) if not os.path.isabs(config_path) else config_path
+    if not os.path.exists(resolved_path):
+        resolved_path = resource_path(config_path)
+    if not os.path.exists(resolved_path):
+        raise FileNotFoundError(f"Configuration file not found: {config_path} (resolved: {resolved_path})")
+
+    with open(resolved_path, 'r', encoding='utf-8') as file:
         content = file.read()
 
     result = {}

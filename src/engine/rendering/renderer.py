@@ -6,6 +6,7 @@ from src.engine.utils.logger import setup_logger
 from src.engine.rendering.shader import ShaderProgram
 from src.engine.rendering.request import EffectRequest, CameraRequest
 from src.engine.core.camera_impulse import CameraImpulse
+from src.engine.utils.paths import resource_path
 
 logger = setup_logger("Renderer")
 
@@ -48,7 +49,7 @@ class Renderer:
 
     def _initialize_resources(self) -> None:
         """Load and compile all system shaders, creating drawing structures."""
-        shader_dir = os.path.join(os.path.dirname(__file__), "shaders")
+        shader_dir = resource_path("src/engine/rendering/shaders")
         
         # 1. Compile Shaders
         try:
