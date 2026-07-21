@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "platform": "Windows 11 (64bit)",
+    "python_version": "3.12.10",
+    "git_commit": "97ab336",
+    "timestamp": "2026-07-21 10:29:35",
+    "cpu_info": "AMD64 Family 23 Model 104 Stepping 1, AuthenticAMD",
+    "gpu_info": "ModernGL / OpenGL Hardware Accelerated"
+  },
+  "config": {
+    "duration_seconds": 1.5,
+    "warmup_seconds": 0.5,
+    "particle_counts": [
+      1000,
+      5000,
+      10000
+    ],
+    "headless": true,
+    "scenarios": [
+      "vision",
+      "gesture",
+      "render",
+      "network",
+      "memory"
+    ]
+  },
+  "scenarios": {
+    "vision": {
+      "scenario_name": "vision",
+      "status": "SUCCESS",
+      "metrics": {
+        "frame_processing_latency_ms": {
+          "min": 4.4574,
+          "max": 14.3261,
+          "mean": 5.7929,
+          "median_p50": 5.548,
+          "p95": 7.4839,
+          "p99": 8.9294,
+          "std_dev": 0.9181
+        }
+      },
+      "error_message": null,
+      "custom_info": {
+        "sample_count": 259
+      }
+    },
+    "gesture": {
+      "scenario_name": "gesture",
+      "status": "SUCCESS",
+      "metrics": {
+        "classification_latency_ms": {
+          "min": 0.001,
+          "max": 0.3331,
+          "mean": 0.0012,
+          "median_p50": 0.0011,
+          "p95": 0.0016,
+          "p99": 0.0018,
+          "std_dev": 0.001
+        }
+      },
+      "error_message": null,
+      "custom_info": {
+        "sample_count": 909804
+      }
+    },
+    "render": {
+      "scenario_name": "render",
+      "status": "SUCCESS",
+      "metrics": {
+        "particle_update_latency_1000_ms": {
+          "min": 0.0445,
+          "max": 0.4778,
+          "mean": 0.0527,
+          "median_p50": 0.0476,
+          "p95": 0.0676,
+          "p99": 0.0937,
+          "std_dev": 0.0126
+        },
+        "particle_update_latency_5000_ms": {
+          "min": 0.1815,
+          "max": 0.4615,
+          "mean": 0.1918,
+          "median_p50": 0.1891,
+          "p95": 0.2289,
+          "p99": 0.2722,
+          "std_dev": 0.0176
+        },
+        "particle_update_latency_10000_ms": {
+          "min": 0.3514,
+          "max": 0.8844,
+          "mean": 0.3721,
+          "median_p50": 0.367,
+          "p95": 0.4236,
+          "p99": 0.5222,
+          "std_dev": 0.0367
+        }
+      },
+      "error_message": null,
+      "custom_info": {
+        "particle_counts_tested": [
+          1000,
+          5000,
+          10000
+        ]
+      }
+    },
+    "network": {
+      "scenario_name": "network",
+      "status": "FAILED",
+      "metrics": {},
+      "error_message": "'OSCTransport' object has no attribute 'serialize'",
+      "custom_info": {}
+    },
+    "memory": {
+      "scenario_name": "memory",
+      "status": "SUCCESS",
+      "metrics": {
+        "gc_pause_latency_ms": {
+          "min": 5.1278,
+          "max": 52.3926,
+          "mean": 8.7365,
+          "median_p50": 7.221,
+          "p95": 15.8275,
+          "p99": 21.3848,
+          "std_dev": 4.7586
+        }
+      },
+      "error_message": null,
+      "custom_info": {
+        "gc_collections_run": 170
+      }
+    }
+  }
+}
