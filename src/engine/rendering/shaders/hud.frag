@@ -34,8 +34,8 @@ void main() {
     float outer_ring = smoothstep(0.01, 0.0, abs(d - u_radius));
     float dashes = step(0.5, sin(atan(rot_p.y, rot_p.x) * 8.0));
     outer_ring *= dashes;
-    
-    # Target crosshair lines
+
+    // Target crosshair lines
     float crosshair = smoothstep(0.005, 0.0, abs(rot_p.x)) * step(d, u_radius * 1.2) * step(u_radius * 0.4, d) +
                       smoothstep(0.005, 0.0, abs(rot_p.y)) * step(d, u_radius * 1.2) * step(u_radius * 0.4, d);
                       

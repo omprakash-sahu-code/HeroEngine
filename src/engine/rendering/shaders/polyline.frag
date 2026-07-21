@@ -3,11 +3,11 @@
 in vec2 v_texcoord;
 out vec4 fragColor;
 
-uniform vec2 u_p1;        # Segment start NDC
-uniform vec2 u_p2;        # Segment end NDC
+uniform vec2 u_p1;        // Segment start NDC
+uniform vec2 u_p2;        // Segment end NDC
 uniform float u_aspect;
 uniform vec3 u_color;
-uniform float u_tension;  # 0.0 (slack) to 1.0 (max tension)
+uniform float u_tension;  // 0.0 (slack) to 1.0 (max tension)
 uniform float u_thickness;
 
 void main() {
